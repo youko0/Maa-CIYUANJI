@@ -1,4 +1,22 @@
 {
+  "name": "maa-ciyuanji",
+  "version": "1.0.0",
+  "description": "次元姬小说助手 - 基于MaaFramework + PySide6实现次元姬小说app签到及小说内容识别保存到本地",
+  "main": "main.py",
+  "scripts": {
+    "start": "python main.py",
+    "configure": "python configure.py",
+    "install": "python install.py"
+  },
+  "keywords": [
+    "maaframework",
+    "pyside6",
+    "automation",
+    "novel",
+    "ciyuanji"
+  ],
+  "author": "Maa-CIYUANJI",
+  "license": "MIT",
   "devDependencies": {
     "prettier-plugin-multiline-arrays": "^3.0.6"
   }

@@ -449,3 +449,9 @@ tools/ImageCropper/**/*.png
 
 config
 debug
+
+
+novels/
+
+config.json
+stats.json

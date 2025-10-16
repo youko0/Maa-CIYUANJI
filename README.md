@@ -5,33 +5,45 @@
 
 <div align="center">
 
-# MaaPracticeBoilerplate
+# Maa-CIYUANJI
 
 </div>
 
-本仓库为 [MaaFramework](https://github.com/MaaXYZ/MaaFramework) 所提供的项目模板，开发者可基于此模板直接创建自己的 MaaXXX 项目。
+次元姬小说助手 - 基于MaaFramework + PySide6实现次元姬小说app签到及小说内容识别保存到本地
+
+本项目是基于 [MaaFramework](https://github.com/MaaXYZ/MaaFramework) 开发的次元姬小说助手，可以实现次元姬小说app的自动签到以及小说内容的识别和保存。
 
 > **MaaFramework** 是基于图像识别技术、运用 [MAA](https://github.com/MaaAssistantArknights/MaaAssistantArknights) 开发经验去芜存菁、完全重写的新一代自动化黑盒测试框架。
 > 低代码的同时仍拥有高扩展性，旨在打造一款丰富、领先、且实用的开源库，助力开发者轻松编写出更好的黑盒测试程序，并推广普及。
+
+## 功能特性
+
+- 自动签到获取代币
+- 小说内容自动识别与保存
+- 多设备协同识别，避免重复处理
+- 章节内容一键导出为TXT文件
+- 友好的PySide6图形界面
+- 完整的日志记录和日志文件
+- MAA框架设备检测与管理
 
 ## 即刻开始
 
 - [📄 快速开始](https://github.com/MaaXYZ/MaaFramework/blob/main/docs/zh_cn/1.1-%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B.md)
 - [🎞️ 视频教程](https://www.bilibili.com/video/BV1yr421E7MW)
 
-## 如何开发
+## 环境配置
 
-0. 使用右上角 `Use this template` - `Create a new repository` 来基于本模板创建您自己的项目。
+1. 确保已安装conda，并创建了名为`Maa-WJDR`的虚拟环境
 
-1. 克隆本项目及子项目（地址请修改为您基于本模板创建的新项目地址）。
+2. 克隆本项目及子项目：
 
     ```bash
     git clone https://github.com/MaaXYZ/MaaPracticeBoilerplate.git
     ```
 
-2. 下载 MaaFramework 的 [Release 包](https://github.com/MaaXYZ/MaaFramework/releases)，解压到 `deps` 文件夹中。
+3. 下载 MaaFramework 的 [Release 包](https://github.com/MaaXYZ/MaaFramework/releases)，解压到 `deps` 文件夹中。
 
-3. 下载通用资源子模块（MaaCommonAssets）
+4. 下载通用资源子模块（MaaCommonAssets）
 
     ```bash
     git submodule update --init --recursive
@@ -40,7 +52,7 @@
     请注意，子模块仓库体积较大，请确认您已经成功下载，否则后续 OCR（文字识别）将报错并无识别结果。  
     若 git 命令始终无法成功下载，也可尝试前往 [Mirror酱](https://mirrorchyan.com/zh/projects?rid=MaaCommonAssets&source=ghtempl-readme) 手动下载后解压到 `assets/MaaCommonAssets` 文件夹中，目录结构为 `assets/MaaCommonAssets/OCR`。
 
-4. 配置资源文件。
+5. 配置资源文件：
 
     ```bash
     python ./configure.py
@@ -48,32 +60,64 @@
 
     若报错 `File Not Found: XXXXXX`，则说明上一步 MaaCommonAssets 未正常下载，请再次检查！
 
-5. 进行开发工作，按您的业务需求修改 `assets` 中的资源文件，请参考 [MaaFramework 相关文档](https://github.com/MaaXYZ/MaaFramework/blob/main/docs/zh_cn/1.1-%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B.md#%E8%B5%84%E6%BA%90%E5%87%86%E5%A4%87)。
-
-6. 完成开发后，上传您的代码并发布版本。
+6. 安装PySide6：
 
     ```bash
-    # 配置 git 信息（仅第一次需要，后续不用再配置）
-    git config user.name "您的 GitHub 昵称"
-    git config user.email "您的 GitHub 邮箱"
-    
-    # 提交修改
-    git add .
-    git commit -m "XX 新功能"
-    git push origin HEAD -u
+    conda activate Maa-WJDR
+    pip install PySide6
     ```
 
-7. 发布您的版本
+## 如何使用
 
-    需要**先**修改仓库设置 `Settings` - `Actions` - `General` - `Read and write permissions` - `Save`
+1. 运行主程序：
 
     ```bash
-    # CI 检测到 tag 会自动进行发版
-    git tag v1.0.0
-    git push origin v1.0.0
+    conda activate Maa-WJDR
+    python main.py
     ```
 
-8. 更多操作，请参考 [个性化配置](./docs/zh_cn/个性化配置.md)（可选）
+2. 在界面中设置目标小说及章节范围
+
+3. 点击"签到"获取代币
+
+4. 点击"识别小说"开始处理小说内容
+
+5. 处理完成后可点击"导出小说"将内容保存为TXT文件
+
+## 项目结构
+
+```
+Maa-CIYUANJI/
+├── agent/                  # MaaFramework代理模块
+│   ├── main.py             # 代理主程序
+│   ├── my_action.py        # 自定义动作
+│   └── my_reco.py          # 自定义识别
+├── assets/                 # 资源文件
+├── logs/                   # 日志文件目录
+├── novels/                 # 小说内容保存目录
+├── config_manager.py       # 配置管理模块
+├── device_manager.py       # 设备管理模块
+├── logger.py               # 日志管理模块
+├── novel_processor.py      # 小说处理模块
+├── main_ui.py              # 主界面模块
+├── main.py                 # 稨序入口
+├── config.json             # 用户配置文件
+├── stats.json              # 运行状态文件
+├── devices.json            # 设备配置文件
+└── README.md               # 说明文档
+```
+
+## 代币机制
+
+- 代币有三个属性：数量、过期时间、余额
+- 每天签到可获得代币，有效期为7天
+- 使用代币购买付费章节时，优先扣除距离过期时间最短的代币
+
+## 多设备协同
+
+- 支持多个设备同时识别同一本小说
+- 每个设备只处理未被其他设备处理过的章节
+- 通过状态文件记录每个章节由哪个设备处理
 
 ## 生态共建
 
