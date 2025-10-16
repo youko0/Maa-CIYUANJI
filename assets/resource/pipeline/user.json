@@ -1,0 +1,23 @@
+{
+  "existsAndClickUser": {
+    "recognition": "OCR",
+    "roi": [49, 1185, 644, 94],
+    "expected": "我的",
+    "action": "click",
+    "timeout": 1200,
+    "describe": "判断是否存在用户中心tabbar，存在则点击"
+  },
+  "existsAndClickSignInEntrance": {
+    "recognition": "OCR",
+    "expected": "签到任务",
+    "action": "click",
+    "timeout": 1200,
+    "describe": "判断是否存在签到任务页面入口，存在则点击"
+  },
+  "existsSignInSuccessTip": {
+    "recognition": "OCR",
+    "expected": "签到成功",
+    "timeout": 2000,
+    "describe": "判断是否存在签到成功提示，存在则点击"
+  }
+}

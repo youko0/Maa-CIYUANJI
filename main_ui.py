@@ -1,4 +1,6 @@
 import sys
+import time
+
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QPushButton, QTextEdit, QFileDialog, QMessageBox,
@@ -473,11 +475,8 @@ class MainWindow(QMainWindow):
 
             try:
                 # 执行签到操作
-                # 1. 启动应用 (com.xunyou.rb)
-                # 2. 进入我的页面进行签到
-                # 注意：这里需要使用MaaFramework来执行实际的签到操作
-                # 由于我们没有具体的签到实现，这里只是模拟签到过程
-
+                # 设备签到
+                self.device_sign_in(device_serial)
                 # 模拟签到过程
                 self._simulate_device_sign_in(device_serial)
 
@@ -498,57 +497,41 @@ class MainWindow(QMainWindow):
         else:
             QMessageBox.information(self, "信息", "所有设备今天已经签到过了")
 
-    def sign_in_device(self):
-        """为选中的设备签到（保留原有的选择签到功能）"""
-        # 获取选中的行
-        selected_rows = self.home_tab.device_table.selectionModel().selectedRows()
-        if not selected_rows:
-            QMessageBox.warning(self, "警告", "请先选择要签到的设备")
-            return
+    def device_sign_in(self, device_serial):
+        """设备签到"""
+        # 1. 启动应用 (com.xunyou.rb)
+        app_logger.info('启动应用，等待10秒启动时间...')
+        tasker = self.maa_manager.get_device_tasker(device_serial)
+        tasker.controller.post_start_app("com.xunyou.rb").wait()
+        time.sleep(10)
+        # 2. 进入我的页面进行签到
+        result = tasker.post_task("existsAndClickUser").wait()
+        # 如果存在，则循环点击跳过和手势引导
+        if result.succeeded is False:
+            app_logger.error(f"{device_serial}设备没有找到用户tabbar，关闭应用再次尝试")
+            tasker.controller.post_stop_app("com.xunyou.rb").wait()
+            app_logger.info('关闭应用，等待5秒...')
+            time.sleep(5)
+            app_logger.info('启动应用，等待10秒启动时间...')
+            tasker.controller.post_start_app("com.xunyou.rb").wait()
+            time.sleep(10)
+            tasker.post_task("existsAndClickUser").wait()
+        time.sleep(1)
+        # 进入签到任务页面
+        tasker.post_task("existsAndClickSignInEntrance").wait()
+        time.sleep(3)
+        # 判断是否存在签到成功提示
+        if tasker.post_task("existsSignInSuccessTip").wait().succeeded:
+            app_logger.info('签到成功')
 
-        signed_in_count = 0
-        from datetime import datetime, date
-
-        for index in selected_rows:
-            row = index.row()
-            # 获取设备序列号
-            address_item = self.home_tab.device_table.item(row, 1)
-            if not address_item:
-                continue
-            device_serial = address_item.text()
-
-            # 检查设备今天是否已经签到
-            today = date.today().strftime("%Y-%m-%d")
-            if device_serial in self.device_sign_in_status and self.device_sign_in_status[device_serial] == today:
-                # 设备今天已经签到，跳过
-                continue
-
-            try:
-                # 执行签到操作
-                # 1. 启动应用 (com.xunyou.rb)
-                # 2. 进入我的页面进行签到
-                # 注意：这里需要使用MaaFramework来执行实际的签到操作
-                # 由于我们没有具体的签到实现，这里只是模拟签到过程
-
-                # 模拟签到过程
-                self._simulate_device_sign_in(device_serial)
-
-                # 更新签到状态并实时保存
-                self.device_sign_in_status[device_serial] = today
-                self.save_device_sign_in_status()
-                signed_in_count += 1
-
-                app_logger.log_device_action("设备签到", device_serial, "签到成功")
-            except Exception as e:
-                app_logger.error(f"设备签到失败 {device_serial}: {e}")
-
-        # 更新UI
-        if signed_in_count > 0:
-            # 更新余额信息
-            self.update_balance_info()
-            QMessageBox.information(self, "成功", f"成功为{signed_in_count}个设备签到")
+            pass
         else:
-            QMessageBox.information(self, "信息", "没有设备需要签到")
+            app_logger.info('设备已签到')
+
+            pass
+
+        # 注意：这里需要使用MaaFramework来执行实际的签到操作
+        # 由于我们没有具体的签到实现，这里只是模拟签到过程
 
     def _simulate_device_sign_in(self, device_serial):
         """模拟设备签到过程"""
