@@ -79,9 +79,13 @@ class HomeTabWidget(QWidget):
         self.connect_device_btn.clicked.connect(self.main_window.connect_device)
         self.disconnect_device_btn = QPushButton("断开设备")
         self.disconnect_device_btn.clicked.connect(self.main_window.disconnect_device)
+        self.sign_in_device_btn = QPushButton("全部签到")
+        self.sign_in_device_btn.clicked.connect(self.main_window.sign_in_all_devices)
+        self.sign_in_device_btn.setToolTip("为所有已连接的设备执行签到操作")
         
         device_btn_layout.addWidget(self.connect_device_btn)
         device_btn_layout.addWidget(self.disconnect_device_btn)
+        device_btn_layout.addWidget(self.sign_in_device_btn)
         device_layout.addLayout(device_btn_layout)
         
         device_group.setLayout(device_layout)

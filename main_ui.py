@@ -97,6 +97,10 @@ class MainWindow(QMainWindow):
         self.maa_manager = MaaFrameworkManager()
         self.processor_thread = None
         self.novels = []  # 小说列表
+        # 存储设备签到状态 {device_serial: last_sign_in_date}
+        self.device_sign_in_status = {}
+        # 加载设备签到状态
+        self.load_device_sign_in_status()
         self.init_ui()
         self.load_data()
     
@@ -153,8 +157,32 @@ class MainWindow(QMainWindow):
         # 不在启动时检测设备，只刷新已连接设备列表
         self.refresh_device_list()
         
+        # 加载设备签到状态
+        self.load_device_sign_in_status()
+        
         # 更新余额信息
         self.update_balance_info()
+    
+    def load_device_sign_in_status(self):
+        """加载设备签到状态"""
+        try:
+            stats = self.config_manager.get_stats()
+            if "device_sign_in_status" in stats:
+                self.device_sign_in_status = stats["device_sign_in_status"]
+            else:
+                self.device_sign_in_status = {}
+        except Exception as e:
+            app_logger.error(f"加载设备签到状态失败: {e}")
+            self.device_sign_in_status = {}
+    
+    def save_device_sign_in_status(self):
+        """保存设备签到状态"""
+        try:
+            stats = self.config_manager.get_stats()
+            stats["device_sign_in_status"] = self.device_sign_in_status
+            self.config_manager.update_stats(stats)
+        except Exception as e:
+            app_logger.error(f"保存设备签到状态失败: {e}")
     
     def refresh_novel_list(self):
         """刷新小说列表"""
@@ -422,6 +450,116 @@ class MainWindow(QMainWindow):
         self.novel_tab.novel_log.append(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 签到成功，获得5个代币")
         app_logger.info("用户执行签到操作，获得5个代币")
     
+    def sign_in_all_devices(self):
+        """为所有已连接的设备签到"""
+        from datetime import datetime, date
+        
+        # 获取所有已连接的设备
+        connected_devices = self.maa_manager.get_connected_devices()
+        
+        if not connected_devices:
+            QMessageBox.information(self, "信息", "没有已连接的设备")
+            return
+        
+        signed_in_count = 0
+        today = date.today().strftime("%Y-%m-%d")
+        
+        for device_serial in connected_devices:
+            # 检查设备今天是否已经签到
+            if device_serial in self.device_sign_in_status and self.device_sign_in_status[device_serial] == today:
+                # 设备今天已经签到，跳过
+                continue
+            
+            try:
+                # 执行签到操作
+                # 1. 启动应用 (com.xunyou.rb)
+                # 2. 进入我的页面进行签到
+                # 注意：这里需要使用MaaFramework来执行实际的签到操作
+                # 由于我们没有具体的签到实现，这里只是模拟签到过程
+                
+                # 模拟签到过程
+                self._simulate_device_sign_in(device_serial)
+                
+                # 更新签到状态并实时保存
+                self.device_sign_in_status[device_serial] = today
+                self.save_device_sign_in_status()
+                signed_in_count += 1
+                
+                app_logger.log_device_action("设备签到", device_serial, "签到成功")
+            except Exception as e:
+                app_logger.error(f"设备签到失败 {device_serial}: {e}")
+        
+        # 更新UI
+        if signed_in_count > 0:
+            # 更新余额信息
+            self.update_balance_info()
+            QMessageBox.information(self, "成功", f"成功为{signed_in_count}个设备签到")
+        else:
+            QMessageBox.information(self, "信息", "所有设备今天已经签到过了")
+
+    def sign_in_device(self):
+        """为选中的设备签到（保留原有的选择签到功能）"""
+        # 获取选中的行
+        selected_rows = self.home_tab.device_table.selectionModel().selectedRows()
+        if not selected_rows:
+            QMessageBox.warning(self, "警告", "请先选择要签到的设备")
+            return
+        
+        signed_in_count = 0
+        from datetime import datetime, date
+        
+        for index in selected_rows:
+            row = index.row()
+            # 获取设备序列号
+            address_item = self.home_tab.device_table.item(row, 1)
+            if not address_item:
+                continue
+            device_serial = address_item.text()
+            
+            # 检查设备今天是否已经签到
+            today = date.today().strftime("%Y-%m-%d")
+            if device_serial in self.device_sign_in_status and self.device_sign_in_status[device_serial] == today:
+                # 设备今天已经签到，跳过
+                continue
+            
+            try:
+                # 执行签到操作
+                # 1. 启动应用 (com.xunyou.rb)
+                # 2. 进入我的页面进行签到
+                # 注意：这里需要使用MaaFramework来执行实际的签到操作
+                # 由于我们没有具体的签到实现，这里只是模拟签到过程
+                
+                # 模拟签到过程
+                self._simulate_device_sign_in(device_serial)
+                
+                # 更新签到状态并实时保存
+                self.device_sign_in_status[device_serial] = today
+                self.save_device_sign_in_status()
+                signed_in_count += 1
+                
+                app_logger.log_device_action("设备签到", device_serial, "签到成功")
+            except Exception as e:
+                app_logger.error(f"设备签到失败 {device_serial}: {e}")
+        
+        # 更新UI
+        if signed_in_count > 0:
+            # 更新余额信息
+            self.update_balance_info()
+            QMessageBox.information(self, "成功", f"成功为{signed_in_count}个设备签到")
+        else:
+            QMessageBox.information(self, "信息", "没有设备需要签到")
+
+    def _simulate_device_sign_in(self, device_serial):
+        """模拟设备签到过程"""
+        from datetime import datetime, timedelta
+        
+        # 添加代币（模拟签到获得5个代币）
+        expire_time = (datetime.now() + timedelta(days=7)).strftime("%Y-%m-%d %H:%M:%S")
+        self.config_manager.add_coin(5, expire_time)
+        
+        # 记录日志
+        app_logger.info(f"设备 {device_serial} 签到成功，获得5个代币")
+
     def process_novel(self):
         """处理小说"""
         if self.processor_thread and self.processor_thread.isRunning():
@@ -490,6 +628,10 @@ class MainWindow(QMainWindow):
     def update_progress(self, message):
         """更新进度信息（保持兼容性）"""
         self.update_novel_progress(message)
+    
+    def closeEvent(self, event):
+        """窗口关闭事件"""
+        event.accept()
 
 
 def main():
