@@ -101,7 +101,7 @@ class MainWindow(QMainWindow):
     def init_ui(self):
         """初始化UI"""
         self.setWindowTitle("次元姬小说助手")
-        self.setGeometry(100, 100, 1000, 700)
+        self.resize(800, 600)
         
         # 创建中央部件
         central_widget = QWidget()
