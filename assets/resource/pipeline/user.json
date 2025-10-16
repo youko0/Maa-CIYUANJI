@@ -19,5 +19,26 @@
     "expected": "签到成功",
     "timeout": 2000,
     "describe": "判断是否存在签到成功提示，存在则点击"
+  },
+  "existsSignInPageFlag": {
+    "recognition": "OCR",
+    "expected": "签到七天，领代币",
+    "replace": [
+      [",", "，"]
+    ],
+    "timeout": 2000,
+    "describe": "判断是否存在签到成功提示，存在则点击"
+  },
+  "ocrSignInCoinNum": {
+    "recognition": "OCR",
+    "expected": "^[0-9]*$",
+    "roi": [142, 681, 142, 59],
+    "replace": [
+      ["\\+", ""],
+      [" ", ""],
+      ["代币", ""]
+    ],
+    "timeout": 1000,
+    "describe": "识别签到获得的硬币数量"
   }
 }

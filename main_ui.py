@@ -1,5 +1,6 @@
 import sys
 import time
+from datetime import datetime, timedelta
 
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
@@ -477,8 +478,6 @@ class MainWindow(QMainWindow):
                 # 执行签到操作
                 # 设备签到
                 self.device_sign_in(device_serial)
-                # 模拟签到过程
-                self._simulate_device_sign_in(device_serial)
 
                 # 更新签到状态并实时保存
                 self.device_sign_in_status[device_serial] = today
@@ -520,25 +519,39 @@ class MainWindow(QMainWindow):
         # 进入签到任务页面
         tasker.post_task("existsAndClickSignInEntrance").wait()
         time.sleep(3)
-        # 判断是否存在签到成功提示
-        if tasker.post_task("existsSignInSuccessTip").wait().succeeded:
-            app_logger.info('签到成功')
-
-            pass
-        else:
-            app_logger.info('设备已签到')
-
-            pass
+        self.ocr_sign_in_coin_num(device_serial, tasker)
 
         # 注意：这里需要使用MaaFramework来执行实际的签到操作
         # 由于我们没有具体的签到实现，这里只是模拟签到过程
+
+    def ocr_sign_in_coin_num(self, device_serial, tasker):
+        """识别签到硬币数量"""
+        if tasker.post_task("existsSignInSuccessTip").wait().succeeded:
+            app_logger.info('签到成功，识别代币数量')
+            result = tasker.post_task("ocrSignInCoinNum").wait().get()
+            if result and result.nodes and len(result.nodes) > 0:
+                coin_num_str = result.nodes[0].recognition.best_result.text
+                # 添加代币（模拟签到获得5个代币）
+                expire_time = (datetime.now() + timedelta(days=7)).strftime("%Y-%m-%d")
+                self.config_manager.add_coin(device_serial, int(coin_num_str), expire_time)
+            else:
+                app_logger.error(f"{device_serial}设备没有识别到代币数量")
+            return True
+        else:
+            # 判断是否成功进入签到页面
+            if tasker.post_task("existsSignInPageFlag").wait().succeeded:
+                app_logger.info('设备已签到')
+                return True
+            else:
+                time.sleep(3)
+                return self.ocr_sign_in_coin_num(tasker)
 
     def _simulate_device_sign_in(self, device_serial):
         """模拟设备签到过程"""
         from datetime import datetime, timedelta
 
         # 添加代币（模拟签到获得5个代币）
-        expire_time = (datetime.now() + timedelta(days=7)).strftime("%Y-%m-%d %H:%M:%S")
+        expire_time = (datetime.now() + timedelta(days=7)).strftime("%Y-%m-%d")
         self.config_manager.add_coin(5, expire_time)
 
         # 记录日志
