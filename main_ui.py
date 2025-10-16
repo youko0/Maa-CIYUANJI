@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QThread, Signal
 from config_manager import ConfigManager
 from novel_processor import NovelProcessor
-from device_manager import device_manager, DeviceInfo
+from maa_manager import MaaFrameworkManager, AdbDevice
 from logger import app_logger
 from ui.home_tab import HomeTabWidget
 from ui.novel_tab import NovelTabWidget
@@ -16,6 +16,7 @@ from ui.balance_tab import BalanceTabWidget
 from ui.dialogs import AddNovelDialog, ConnectDeviceDialog
 import os
 import json
+import pathlib
 
 
 class NovelProcessorThread(QThread):
@@ -92,7 +93,8 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.config_manager = ConfigManager()
         self.novel_processor = NovelProcessor(self.config_manager)
-        self.device_manager = device_manager
+        # 直接使用MaaFrameworkManager
+        self.maa_manager = MaaFrameworkManager()
         self.processor_thread = None
         self.novels = []  # 小说列表
         self.init_ui()
@@ -148,8 +150,8 @@ class MainWindow(QMainWindow):
         # 加载小说列表（从配置中读取或初始化）
         self.refresh_novel_list()
         
-        # 检测并加载设备列表
-        self.detect_devices()
+        # 不在启动时检测设备，只刷新已连接设备列表
+        self.refresh_device_list()
         
         # 更新余额信息
         self.update_balance_info()
@@ -166,20 +168,106 @@ class MainWindow(QMainWindow):
         """更新余额信息"""
         self.balance_tab.update_balance_info()
     
-    def detect_devices(self):
-        """检测设备"""
+    def connect_device(self):
+        """连接设备"""
+        # 更新对话框中的设备管理器引用
+        dialog = ConnectDeviceDialog(self, self)
+        
+        result = dialog.exec()
+        if result == QDialog.DialogCode.Accepted:
+            selected_device_addrs = dialog.get_selected_device()
+            if selected_device_addrs:
+                connected_count = 0
+                for device_addr in selected_device_addrs:
+                    if self._connect_device_by_address(device_addr):
+                        connected_count += 1
+                
+                if connected_count > 0:
+                    self.refresh_device_list()
+                    app_logger.log_device_action("连接设备", f"成功连接{connected_count}个设备")
+
+    def _connect_device_by_address(self, device_address: str) -> bool:
+        """
+        根据地址连接设备
+        
+        Args:
+            device_address: 设备连接地址
+            
+        Returns:
+            bool: 连接是否成功
+        """
+        # 查找设备
+        device = self._get_device_by_address(device_address)
+        if not device:
+            app_logger.warning(f"未找到设备: {device_address}")
+            return False
+        
         try:
-            # 检测设备
-            detected_devices = self.device_manager.detect_devices()
-            self.device_manager.update_device_list(detected_devices)
+            # 使用MaaFramework连接设备
+            tasker = self.maa_manager.connect_device(device)
             
-            # 刷新显示
-            self.refresh_device_list()
-            
-            app_logger.info(f"检测到 {len(detected_devices)} 个设备")
+            app_logger.log_device_action("连接设备", device.name, f"地址: {device.address}")
+            return True
         except Exception as e:
-            app_logger.error(f"检测设备失败: {e}")
-            QMessageBox.critical(self, "错误", f"检测设备失败: {str(e)}")
+            app_logger.error(f"连接设备失败 {device_address}: {e}")
+            return False
+
+    def disconnect_device(self):
+        """断开设备"""
+        # 获取选中的行
+        selected_rows = self.home_tab.device_table.selectionModel().selectedRows()
+        if not selected_rows:
+            QMessageBox.warning(self, "警告", "请先选择要断开的设备")
+            return
+        
+        disconnected_count = 0
+        for index in selected_rows:
+            row = index.row()
+            # 安全地获取地址
+            address_item = self.home_tab.device_table.item(row, 1)
+            if not address_item:
+                continue
+            address = address_item.text()
+            if self._disconnect_device_by_address(address):
+                disconnected_count += 1
+        
+        # 刷新显示
+        self.refresh_device_list()
+        
+        if disconnected_count > 0:
+            app_logger.log_device_action("断开设备", f"成功断开{disconnected_count}个设备")
+            QMessageBox.information(self, "成功", f"成功断开{disconnected_count}个设备")
+        else:
+            QMessageBox.information(self, "信息", "没有设备需要断开")
+
+    def _disconnect_device_by_address(self, device_address: str) -> bool:
+        """
+        根据地址断开设备
+        
+        Args:
+            device_address: 设备连接地址
+            
+        Returns:
+            bool: 断开是否成功
+        """
+        try:
+            # 使用MaaFramework断开设备
+            self.maa_manager.disconnect_device(device_address)
+            
+            app_logger.log_device_action("断开设备", f"地址: {device_address}")
+            return True
+        except Exception as e:
+            app_logger.error(f"断开设备失败 {device_address}: {e}")
+            return False
+    
+    def _get_device_by_address(self, address: str):
+        """根据地址获取设备信息"""
+        # 直接通过MAA框架查找设备
+        devices = self.maa_manager.find_devices()
+        for device in devices:
+            if device.address == address:
+                return device
+        return None
     
     def add_novel(self):
         """添加小说"""
@@ -266,83 +354,6 @@ class MainWindow(QMainWindow):
         
         # 开始识别过程
         self.process_novel()
-    
-    def connect_device(self):
-        """连接设备"""
-        # 更新对话框中的设备管理器引用
-        dialog = ConnectDeviceDialog(self, self.device_manager)
-        
-        result = dialog.exec()
-        if result == QDialog.DialogCode.Accepted:
-            selected_device_addr = dialog.get_selected_device()
-            if selected_device_addr:
-                if self.device_manager.connect_device(selected_device_addr):
-                    self.refresh_device_list()
-                    # 查找设备名称用于日志
-                    device = self.device_manager.get_device_by_address(selected_device_addr)
-                    if device:
-                        app_logger.log_device_action("连接设备", device.name)
-    
-    def _refresh_dialog_devices(self, dialog):
-        """刷新对话框中的设备列表"""
-        dialog.device_table.setRowCount(0)  # 清空表格
-        
-        # 检测设备
-        detected_devices = self.device_manager.detect_devices()
-        self.device_manager.update_device_list(detected_devices)
-        
-        # 显示所有设备
-        dialog.device_table.setRowCount(len(self.device_manager.devices))
-        for row, device in enumerate(self.device_manager.devices):
-            dialog.device_table.setItem(row, 0, QTableWidgetItem(device.name))
-            dialog.device_table.setItem(row, 1, QTableWidgetItem(device.address))
-            dialog.device_table.setItem(row, 2, QTableWidgetItem(device.adb_path))
-            status = "已连接" if device.connected else "未连接"
-            status_item = QTableWidgetItem(status)
-            dialog.device_table.setItem(row, 3, status_item)
-            
-            # 设置状态列字体颜色
-            if device.connected:
-                status_item.setForeground(Qt.GlobalColor.darkGreen)
-            else:
-                status_item.setForeground(Qt.GlobalColor.red)
-            
-            # 已连接的设备设置为不可选
-            if device.connected:
-                for col in range(4):
-                    item = dialog.device_table.item(row, col)
-                    if item:
-                        item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsSelectable)
-    
-    def disconnect_device(self):
-        """断开设备"""
-        # 获取选中的行
-        selected_rows = self.home_tab.device_table.selectionModel().selectedRows()
-        if not selected_rows:
-            QMessageBox.warning(self, "警告", "请先选择要断开的设备")
-            return
-        
-        disconnected_count = 0
-        for index in selected_rows:
-            row = index.row()
-            # 安全地获取地址
-            address_item = self.home_tab.device_table.item(row, 1)
-            if not address_item:
-                continue
-            address = address_item.text()
-            device = self.device_manager.get_device_by_address(address)
-            if device and device.connected:
-                if self.device_manager.disconnect_device(address):
-                    disconnected_count += 1
-        
-        # 刷新显示
-        self.refresh_device_list()
-        
-        if disconnected_count > 0:
-            app_logger.log_device_action("断开设备", f"成功断开{disconnected_count}个设备")
-            QMessageBox.information(self, "成功", f"成功断开{disconnected_count}个设备")
-        else:
-            QMessageBox.information(self, "信息", "没有设备需要断开")
     
     def stop_novel_recognition(self):
         """停止小说识别"""

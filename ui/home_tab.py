@@ -108,12 +108,26 @@ class HomeTabWidget(QWidget):
         """刷新设备列表 - 只显示已连接的设备"""
         self.device_table.setRowCount(0)  # 清空表格
         # 只显示已连接的设备
-        connected_devices = [device for device in self.main_window.device_manager.devices if device.connected]
+        connected_devices = self.main_window.maa_manager.get_connected_devices()
+        
+        # 通过MAA框架获取设备详细信息
+        all_devices = self.main_window.maa_manager.find_devices()
+        device_details = {device.address: device for device in all_devices}
+        
         self.device_table.setRowCount(len(connected_devices))
-        for row, device in enumerate(connected_devices):
-            self.device_table.setItem(row, 0, QTableWidgetItem(device.name))
-            self.device_table.setItem(row, 1, QTableWidgetItem(device.address))
-            self.device_table.setItem(row, 2, QTableWidgetItem(device.adb_path))
+        for row, device_serial in enumerate(connected_devices):
+            # 获取设备详细信息
+            if device_serial in device_details:
+                device = device_details[device_serial]
+                self.device_table.setItem(row, 0, QTableWidgetItem(device.name))
+                self.device_table.setItem(row, 1, QTableWidgetItem(device.address))
+                self.device_table.setItem(row, 2, QTableWidgetItem(str(device.adb_path)))
+            else:
+                # 如果找不到详细信息，使用默认值
+                self.device_table.setItem(row, 0, QTableWidgetItem(f"设备 {device_serial}"))
+                self.device_table.setItem(row, 1, QTableWidgetItem(device_serial))
+                self.device_table.setItem(row, 2, QTableWidgetItem("N/A"))
+                
             status_item = QTableWidgetItem("已连接")
             self.device_table.setItem(row, 3, status_item)
             

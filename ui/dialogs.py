@@ -63,9 +63,10 @@ class AddNovelDialog(QDialog):
 class ConnectDeviceDialog(QDialog):
     """连接设备对话框"""
     
-    def __init__(self, parent=None, device_manager=None):
+    def __init__(self, parent=None, main_window=None):
         super().__init__(parent)
-        self.device_manager = device_manager
+        self.main_window = main_window
+        self.selected_devices = []  # 存储选中的设备地址列表
         self.setWindowTitle("连接设备")
         self.setModal(True)
         self.resize(600, 400)
@@ -76,7 +77,6 @@ class ConnectDeviceDialog(QDialog):
                 parent_geo.center().x() - self.width() // 2,
                 parent_geo.center().y() - self.height() // 2
             )
-        self.selected_device = None
         self.init_ui()
     
     def init_ui(self):
@@ -128,33 +128,35 @@ class ConnectDeviceDialog(QDialog):
     
     def refresh_devices(self):
         """刷新设备列表 - 显示所有识别到的设备"""
-        if not self.device_manager:
+        if not self.main_window:
             return
             
         self.device_table.setRowCount(0)  # 清空表格
         
         # 检测设备
-        detected_devices = self.device_manager.detect_devices()
-        self.device_manager.update_device_list(detected_devices)
+        detected_devices = self.main_window.maa_manager.find_devices()
         
         # 显示所有设备
-        self.device_table.setRowCount(len(self.device_manager.devices))
-        for row, device in enumerate(self.device_manager.devices):
+        self.device_table.setRowCount(len(detected_devices))
+        for row, device in enumerate(detected_devices):
             self.device_table.setItem(row, 0, QTableWidgetItem(device.name))
             self.device_table.setItem(row, 1, QTableWidgetItem(device.address))
-            self.device_table.setItem(row, 2, QTableWidgetItem(device.adb_path))
-            status = "已连接" if device.connected else "未连接"
+            self.device_table.setItem(row, 2, QTableWidgetItem(str(device.adb_path)))
+            
+            # 检查设备是否已连接
+            is_connected = self.main_window.maa_manager.is_device_connected(device.address)
+            status = "已连接" if is_connected else "未连接"
             status_item = QTableWidgetItem(status)
             self.device_table.setItem(row, 3, status_item)
             
             # 设置状态列字体颜色
-            if device.connected:
+            if is_connected:
                 status_item.setForeground(Qt.GlobalColor.darkGreen)
             else:
                 status_item.setForeground(Qt.GlobalColor.red)
             
             # 已连接的设备设置为不可选
-            if device.connected:
+            if is_connected:
                 for col in range(4):
                     item = self.device_table.item(row, col)
                     if item:
@@ -164,23 +166,29 @@ class ConnectDeviceDialog(QDialog):
         """设备选择变化时更新连接按钮状态"""
         selected_rows = self.device_table.selectionModel().selectedRows()
         if selected_rows:
-            row = selected_rows[0].row()
-            # 检查是否已连接
-            status_item = self.device_table.item(row, 3)
-            if status_item and status_item.text() == "未连接":
+            # 检查是否有未连接的设备
+            has_unconnected = False
+            self.selected_devices = []  # 存储所有选中的设备地址
+            
+            for index in selected_rows:
+                row = index.row()
+                # 检查是否已连接
+                status_item = self.device_table.item(row, 3)
+                if status_item and status_item.text() == "未连接":
+                    has_unconnected = True
+                    # 获取选中的设备地址
+                    address_item = self.device_table.item(row, 1)
+                    if address_item:
+                        self.selected_devices.append(address_item.text())
+            
+            if has_unconnected:
                 self.connect_btn.setEnabled(True)
-                # 获取选中的设备地址
-                address_item = self.device_table.item(row, 1)
-                if address_item:
-                    self.selected_device = address_item.text()
-                else:
-                    self.selected_device = None
             else:
                 self.connect_btn.setEnabled(False)
-                self.selected_device = None
+                self.selected_devices = []
         else:
             self.connect_btn.setEnabled(False)
-            self.selected_device = None
+            self.selected_devices = []
     
     def on_item_double_clicked(self, item):
         """双击设备项进行连接"""
@@ -195,8 +203,9 @@ class ConnectDeviceDialog(QDialog):
             # 设置选中设备并接受对话框
             self.device_table.selectRow(row)
             self.on_device_selected()
-            if self.selected_device:
+            if self.selected_devices:
                 self.accept()
-    
+
     def get_selected_device(self):
-        return self.selected_device
+        """获取选中的设备地址列表"""
+        return self.selected_devices if hasattr(self, 'selected_devices') else []
