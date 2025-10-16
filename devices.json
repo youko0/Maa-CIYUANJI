@@ -1,0 +1,20 @@
+[
+    {
+        "name": "模拟器1",
+        "address": "127.0.0.1:62001",
+        "adb_path": "/path/to/adb1",
+        "connected": false
+    },
+    {
+        "name": "模拟器2",
+        "address": "127.0.0.1:62002",
+        "adb_path": "/path/to/adb2",
+        "connected": false
+    },
+    {
+        "name": "手机1",
+        "address": "192.168.1.100:5555",
+        "adb_path": "/path/to/adb3",
+        "connected": false
+    }
+]
