@@ -4,6 +4,7 @@ from PySide6.QtWidgets import (
     QMessageBox, QListWidgetItem, QLineEdit
 )
 from PySide6.QtCore import Qt
+from logger import app_logger
 
 
 class AddNovelDialog(QDialog):
@@ -108,12 +109,15 @@ class ConnectDeviceDialog(QDialog):
         self.connect_btn = QPushButton("连接选中设备")
         self.connect_btn.clicked.connect(self.accept)
         self.connect_btn.setEnabled(False)  # 默认禁用，选择设备后启用
+        self.connect_all_btn = QPushButton("连接所有设备")
+        self.connect_all_btn.clicked.connect(self.connect_all_devices)
         self.refresh_btn = QPushButton("刷新设备列表")
         self.refresh_btn.clicked.connect(self.refresh_devices)
         self.cancel_btn = QPushButton("取消")
         self.cancel_btn.clicked.connect(self.reject)
         
         button_layout.addWidget(self.connect_btn)
+        button_layout.addWidget(self.connect_all_btn)
         button_layout.addWidget(self.refresh_btn)
         button_layout.addWidget(self.cancel_btn)
         layout.addLayout(button_layout)
@@ -205,6 +209,63 @@ class ConnectDeviceDialog(QDialog):
             self.on_device_selected()
             if self.selected_devices:
                 self.accept()
+            # 如果没有选中设备（可能是因为设备已连接），则不关闭对话框
+
+    def connect_all_devices(self):
+        """连接所有未连接的设备"""
+        # 检查主窗口是否存在
+        if not self.main_window:
+            QMessageBox.warning(self, "错误", "主窗口未初始化")
+            return
+            
+        # 获取所有未连接的设备
+        unconnected_devices = []
+        for row in range(self.device_table.rowCount()):
+            status_item = self.device_table.item(row, 3)
+            if status_item and status_item.text() == "未连接":
+                address_item = self.device_table.item(row, 1)
+                if address_item:
+                    unconnected_devices.append(address_item.text())
+        
+        if not unconnected_devices:
+            QMessageBox.information(self, "信息", "没有未连接的设备")
+            return
+        
+        # 连接所有未连接的设备
+        connected_count = 0
+        for device_addr in unconnected_devices:
+            # 查找设备详细信息
+            device = None
+            try:
+                devices = self.main_window.maa_manager.find_devices()
+                for d in devices:
+                    if d.address == device_addr:
+                        device = d
+                        break
+            except Exception as e:
+                app_logger.error(f"查找设备失败 {device_addr}: {e}")
+                continue
+            
+            if device:
+                try:
+                    # 使用MaaFramework连接设备
+                    tasker = self.main_window.maa_manager.connect_device(device)
+                    connected_count += 1
+                except Exception as e:
+                    app_logger.error(f"连接设备失败 {device_addr}: {e}")
+        
+        if connected_count > 0:
+            # 刷新设备列表
+            self.refresh_devices()
+            # 更新主窗口设备列表
+            try:
+                self.main_window.refresh_device_list()
+            except Exception as e:
+                app_logger.error(f"刷新主窗口设备列表失败: {e}")
+            app_logger.log_device_action("连接设备", f"成功连接{connected_count}个设备")
+            QMessageBox.information(self, "成功", f"成功连接{connected_count}个设备")
+        else:
+            QMessageBox.information(self, "信息", "没有设备被成功连接")
 
     def get_selected_device(self):
         """获取选中的设备地址列表"""
