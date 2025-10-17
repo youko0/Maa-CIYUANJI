@@ -22,12 +22,9 @@
   },
   "existsSignInPageFlag": {
     "recognition": "OCR",
-    "expected": "签到七天，领代币",
-    "replace": [
-      [",", "，"]
-    ],
+    "expected": "第六天",
     "timeout": 2000,
-    "describe": "判断是否存在签到成功提示，存在则点击"
+    "describe": "判断是否存在第六天，存在则说明成功进入签到页，并且没有签到成功提示"
   },
   "ocrSignInCoinNum": {
     "recognition": "OCR",
