@@ -481,16 +481,45 @@ class MainWindow(QMainWindow):
         else:
             QMessageBox.information(self, "信息", "所有设备今天已经签到过了")
 
+    def sign_in_device_by_serial(self, device_serial):
+        """根据设备序列号签到单个设备"""
+        from datetime import date
+
+        # 检查设备今天是否已经签到
+        today = date.today().strftime("%Y-%m-%d")
+        if device_serial in self.device_sign_in_status and self.device_sign_in_status[device_serial] == today:
+            QMessageBox.information(self, "信息", f"设备 {device_serial} 今天已经签到过了")
+            return
+
+        try:
+            # 执行签到操作
+            if self.device_sign_in(device_serial):
+                # 更新签到状态并实时保存
+                self.device_sign_in_status[device_serial] = today
+                self.save_device_sign_in_status()
+
+                # 更新余额信息
+                self.update_balance_info()
+                self.refresh_device_list()  # 刷新设备列表以更新签到时间
+
+                QMessageBox.information(self, "成功", f"设备 {device_serial} 签到成功")
+                app_logger.log_device_action("设备签到", device_serial, "签到成功")
+            else:
+                QMessageBox.warning(self, "失败", f"设备 {device_serial} 签到失败")
+        except Exception as e:
+            app_logger.error(f"设备签到失败 {device_serial}: {e}")
+            QMessageBox.critical(self, "错误", f"设备签到时发生错误: {e}")
+
     def device_sign_in(self, device_serial):
         """设备签到"""
         try:
             # 1. 启动应用 (com.xunyou.rb)
-            app_logger.info('启动应用，等待10秒启动时间...')
             tasker = self.maa_manager.get_device_tasker(device_serial)
             if tasker is None:
                 app_logger.error(f"无法获取设备 {device_serial} 的tasker实例")
                 return False
 
+            app_logger.info('启动应用，等待10秒启动时间...')
             tasker.controller.post_start_app("com.xunyou.rb").wait()
             time.sleep(10)
             # 2. 进入我的页面进行签到
@@ -539,16 +568,43 @@ class MainWindow(QMainWindow):
                 time.sleep(3)
                 return self.ocr_sign_in_coin_num(device_serial, tasker)
 
-    def _simulate_device_sign_in(self, device_serial):
-        """模拟设备签到过程"""
-        from datetime import datetime, timedelta
+    def refresh_device_balance(self, device_serial):
+        """刷新余额"""
+        try:
+            tasker = self.maa_manager.get_device_tasker(device_serial)
+            if tasker is None:
+                app_logger.error(f"无法获取设备 {device_serial} 的tasker实例")
+                return False
 
-        # 添加代币（模拟签到获得5个代币）
-        expire_time = (datetime.now() + timedelta(days=7)).strftime("%Y-%m-%d %H:%M:%S")
-        self.config_manager.add_coin(device_serial, 5, expire_time)
+            app_logger.info('启动应用，等待10秒启动时间...')
+            tasker.controller.post_start_app("com.xunyou.rb").wait()
+            time.sleep(10)
+            # 2. 进入我的页面进行签到
+            result = tasker.post_task("existsAndClickUser").wait()
+            # 如果存在，则循环点击跳过和手势引导
+            if result.succeeded is False:
+                app_logger.error(f"{device_serial}设备没有找到用户tabbar，关闭应用再次尝试")
+                tasker.controller.post_stop_app("com.xunyou.rb").wait()
+                app_logger.info('关闭应用，等待5秒...')
+                time.sleep(5)
+                app_logger.info('启动应用，等待10秒启动时间...')
+                tasker.controller.post_start_app("com.xunyou.rb").wait()
+                time.sleep(10)
+                tasker.post_task("existsAndClickUser").wait()
+            time.sleep(1)
+            # 进入代币账号页面
+            tasker.post_task("existsAndClickCoinEntrance").wait()
+            time.sleep(0.5)
+            # 识别代币总数量
+            tasker.post_task("ocrTotalCoinNum").wait()
+            time.sleep(0.5)
+            # 进入代币明细页
+            tasker.post_task("existsAndClickCoinEntrance").wait()
+            time.sleep(0.5)
+            # 识别代币明细
 
-        # 记录日志
-        app_logger.info(f"设备 {device_serial} 签到成功，获得5个代币")
+        except Exception as e:
+            app_logger.error(f"刷新余额失败 {device_serial}: {e}")
 
     def process_novel(self):
         """处理小说"""

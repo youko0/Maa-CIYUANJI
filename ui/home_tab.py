@@ -60,8 +60,8 @@ class HomeTabWidget(QWidget):
         
         # 设备列表控件（使用表格显示详细信息）
         self.device_table = QTableWidget()
-        self.device_table.setColumnCount(4)
-        self.device_table.setHorizontalHeaderLabels(["设备名称", "连接地址", "ADB路径", "状态"])
+        self.device_table.setColumnCount(6)  # 增加到6列
+        self.device_table.setHorizontalHeaderLabels(["设备名称", "连接地址", "ADB路径", "状态", "上次签到时间", "操作"])
         self.device_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.device_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         # 设置选中行的样式
@@ -137,3 +137,23 @@ class HomeTabWidget(QWidget):
             
             # 设置状态列字体为绿色
             status_item.setForeground(Qt.GlobalColor.darkGreen)
+            
+            # 添加上次签到时间
+            last_sign_in = self.main_window.device_sign_in_status.get(device_serial, "未签到")
+            self.device_table.setItem(row, 4, QTableWidgetItem(last_sign_in))
+            
+            # 添加操作按钮
+            operation_widget = QWidget()
+            operation_layout = QHBoxLayout(operation_widget)
+            operation_layout.setContentsMargins(0, 0, 0, 0)
+            
+            sign_in_btn = QPushButton("签到")
+            sign_in_btn.clicked.connect(lambda checked, ds=device_serial: self.main_window.sign_in_device_by_serial(ds))
+            refresh_btn = QPushButton("刷新余额")
+            refresh_btn.clicked.connect(lambda checked, ds=device_serial: self.main_window.refresh_device_balance(ds))
+            
+            operation_layout.addWidget(sign_in_btn)
+            operation_layout.addWidget(refresh_btn)
+            operation_widget.setLayout(operation_layout)
+            
+            self.device_table.setCellWidget(row, 5, operation_widget)

@@ -37,5 +37,26 @@
     ],
     "timeout": 1000,
     "describe": "识别签到获得的硬币数量"
+  },
+  "existsAndClickCoinEntrance": {
+    "recognition": "OCR",
+    "expected": "代币",
+    "action": "click",
+    "timeout": 1200,
+    "describe": "判断是否存在代币账号页面入口，存在则点击"
+  },
+  "ocrTotalCoinNum": {
+    "recognition": "OCR",
+    "expected": "^[0-9]*$",
+    "roi": [119, 370, 102, 60],
+    "timeout": 1000,
+    "describe": "识别硬币总数量"
+  },
+  "findAllCoinNum": {
+    "recognition": "OCR",
+    "expected": "^[0-9]*$",
+    "roi": [87, 152, 133, 1127],
+    "timeout": 1000,
+    "describe": "识别硬币明细数量"
   }
 }

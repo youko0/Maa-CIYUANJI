@@ -17,7 +17,6 @@ from maa.tasker import Tasker
 from maa.toolkit import Toolkit, AdbDevice
 from maa.resource import Resource
 from maa.controller import AdbController
-from maa.notification_handler import NotificationHandler, NotificationType
 
 
 class MaaFrameworkManager:
