@@ -448,13 +448,13 @@ install
 tools/ImageCropper/**/*.png
 
 config
+configs
 debug
 
 
 novels/
 
-config.json
-stats.json
 
+.nicegui/
 maa-wjdr-master/
 demo/
