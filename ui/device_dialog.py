@@ -305,6 +305,8 @@ class DeviceConnectionDialog(QDialog):
 
     def _connect_all_devices(self):
         """连接所有设备"""
+        if not self.devices:
+            return
         for device in self.devices:
             if self.maa_manager.is_device_connected(device.address):
                 continue
@@ -312,6 +314,7 @@ class DeviceConnectionDialog(QDialog):
 
         self.device_connect_completed.emit()
         self.accept()
+
     def _connect_selected_device(self):
         """连接选中的设备"""
         selected_rows = self.device_table.selectionModel().selectedRows()
@@ -387,58 +390,3 @@ class DeviceConnectionDialog(QDialog):
             self.discovery_thread.wait(3000)
 
         event.accept()
-
-
-class QuickConnectDialog(QDialog):
-    """
-    快速连接对话框
-    用于手动输入设备地址进行连接
-    """
-
-    device_address_entered = Signal(str)  # 设备地址输入信号
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("快速连接设备")
-        self.setModal(True)
-        self.resize(400, 200)
-
-        self._setup_ui()
-
-    def _setup_ui(self):
-        """设置UI"""
-        layout = QVBoxLayout(self)
-
-        # 说明
-        desc_label = QLabel("请输入设备连接地址（例如: 127.0.0.1:5555）")
-        layout.addWidget(desc_label)
-
-        # 输入框
-        from PySide6.QtWidgets import QLineEdit
-        self.address_input = QLineEdit()
-        self.address_input.setPlaceholderText("127.0.0.1:5555")
-        layout.addWidget(self.address_input)
-
-        # 按钮
-        button_layout = QHBoxLayout()
-
-        connect_btn = QPushButton("连接")
-        cancel_btn = QPushButton("取消")
-
-        connect_btn.clicked.connect(self._connect_device)
-        cancel_btn.clicked.connect(self.reject)
-
-        button_layout.addWidget(connect_btn)
-        button_layout.addWidget(cancel_btn)
-
-        layout.addLayout(button_layout)
-
-    def _connect_device(self):
-        """连接设备"""
-        address = self.address_input.text().strip()
-        if not address:
-            QMessageBox.warning(self, "错误", "请输入设备地址")
-            return
-
-        self.device_address_entered.emit(address)
-        self.accept()

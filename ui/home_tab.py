@@ -45,6 +45,9 @@ class HomeTab(QWidget):
         self.connect_device_btn = QPushButton("连接设备")
         self.connect_device_btn.clicked.connect(self._show_connect_device_dialog)
         device_btn_layout.addWidget(self.connect_device_btn)
+        self.one_click_connect_device_btn = QPushButton("一键连接设备")
+        self.one_click_connect_device_btn.clicked.connect(self.one_click_connect_device)
+        device_btn_layout.addWidget(self.one_click_connect_device_btn)
         self.one_click_check_in_btn = QPushButton("一键签到")
         self.one_click_check_in_btn.clicked.connect(self.one_click_check_in)
         device_btn_layout.addWidget(self.one_click_check_in_btn)
@@ -94,6 +97,23 @@ class HomeTab(QWidget):
         if dialog.exec() == DeviceConnectionDialog.DialogCode.Accepted:
             # 设备连接对话框关闭
             pass
+
+    def one_click_connect_device(self):
+        """一键连接设备"""
+        devices = self.maa_manager.find_devices()
+        if len(devices) == 0:
+            self.logger.warning("未找到可用设备")
+            return
+
+        for device in devices:
+            if self.maa_manager.is_device_connected(device.address):
+                self.logger.warning(f"设备 {device.name} ({device.address}) 已连接")
+                continue
+            self.maa_manager.connect_device(device)
+            self.logger.info(f"设备 {device.name} ({device.address}) 连接成功")
+
+        # 刷新设备列表显示
+        self.refresh_device_list()
 
     def _connect_device(self, device_info):
         """连接设备"""
