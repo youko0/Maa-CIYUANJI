@@ -18,6 +18,9 @@ from maa.toolkit import Toolkit, AdbDevice
 from maa.resource import Resource
 from maa.controller import AdbController
 
+from core.config_manager import ConfigManager
+from core.domain.device_info import DeviceInfo
+
 
 class MaaFrameworkManager:
     """
@@ -25,7 +28,7 @@ class MaaFrameworkManager:
     负责设备连接、资源管理和设备隔离
     """
 
-    def __init__(self, resource_path: str = "assets/resource"):
+    def __init__(self, resource_path: str = "assets/resource", config_manager: ConfigManager = None):
         """
         初始化MaaFramework环境
         
@@ -37,13 +40,19 @@ class MaaFrameworkManager:
 
         # 创建资源实例
         self.resource = Resource()
+        # self.resource.use_cpu()
         self.resource_path = resource_path
+
+        self.config_manager = config_manager
 
         # 存储设备实例的字典
         self.device_instances: Dict[str, Tasker] = {}
 
         # 存储设备控制器的字典
         self.device_controllers: Dict[str, AdbController] = {}
+
+        # 存储设备信息的字典
+        self.device_infos: Dict[str, DeviceInfo] = {}
 
         # 初始化日志
         self.logger = logging.getLogger(__name__)
@@ -54,6 +63,8 @@ class MaaFrameworkManager:
 
         # 加载资源包
         self._load_resources()
+        # 加载设备名
+        self._load_device_names()
 
     def _register_custom_recognitions(self):
         """注册自定义识别"""
@@ -86,6 +97,17 @@ class MaaFrameworkManager:
             self.logger.error(f"加载资源包时出错: {e}")
             # 即使出错也要初始化游戏逻辑处理器
 
+    def _load_device_names(self):
+        """从配置文件加载小说信息"""
+        pass
+        # try:
+        #     novels_data = self.config_manager.get_config("devices", {})
+        #     for name, novel_data in novels_data.items():
+        #         self.novels[name] = NovelInfo.from_dict(novel_data)
+        #     self.logger.info(f"加载了 {len(self.novels)} 本小说")
+        # except Exception as e:
+        #     self.logger.error(f"加载小说信息失败: {e}")
+
     def find_devices(self) -> List[AdbDevice]:
         """
         查找可用的ADB设备
@@ -95,8 +117,14 @@ class MaaFrameworkManager:
         """
         try:
             devices = Toolkit.find_adb_devices()
-            self.logger.info(f"找到 {len(devices)} 个设备")
-            return devices
+            seen_addresses = set()
+            unique_devices = []
+            for device in devices:
+                if device.address not in seen_addresses:
+                    seen_addresses.add(device.address)
+                    unique_devices.append(device)
+            self.logger.info(f"找到 {len(unique_devices)} 个设备")
+            return unique_devices
         except Exception as e:
             self.logger.error(f"查找设备时出错: {e}")
             return []
@@ -145,6 +173,7 @@ class MaaFrameworkManager:
             # 存储设备实例
             self.device_instances[device_serial] = tasker
             self.device_controllers[device_serial] = controller
+            self.device_infos[device_serial] = DeviceInfo(device_serial)
 
             self.logger.info(f"设备连接成功: {device_serial}")
             return tasker
@@ -183,9 +212,9 @@ class MaaFrameworkManager:
         """
         return self.device_instances.get(device_serial)
 
-    def get_connected_devices(self) -> List[str]:
+    def get_connected_device_serial_list(self) -> List[str]:
         """
-        获取已连接的设备列表
+        获取已连接的设备序列号列表
         
         Returns:
             已连接设备的序列号列表

@@ -1,114 +1,106 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+"""
+余额标签页模块
+包含代币管理和使用记录显示功能
+"""
+
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QTextEdit,
-    QTableWidget, QTableWidgetItem, QHeaderView, QLabel
+    QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QTableWidget, QTableWidgetItem,
+    QLabel, QPushButton, QHeaderView
 )
+from PySide6.QtCore import Qt
+
+from utils.logger import get_logger
 
 
-class BalanceTabWidget(QWidget):
-    """余额Tab控件"""
+class BalanceTab(QWidget):
+    """余额标签页"""
 
-    def __init__(self, main_window):
+    def __init__(self, coin_manager, config_manager):
         super().__init__()
-        self.main_window = main_window
+        self.coin_manager = coin_manager
+        self.config_manager = config_manager
+        self.logger = get_logger(__name__)
+        
         self.init_ui()
 
     def init_ui(self):
         """初始化UI"""
         layout = QVBoxLayout(self)
 
-        # 总余额信息
-        total_balance_group = QGroupBox("总余额信息")
-        total_layout = QVBoxLayout()
+        # 余额概览区域
+        overview_layout = QHBoxLayout()
 
-        self.total_balance_label = QLabel("所有设备代币总余额: 0")
-        self.nearest_expire_label = QLabel("最近过期时间: 无")
-        total_layout.addWidget(self.total_balance_label)
-        total_layout.addWidget(self.nearest_expire_label)
+        # 总余额显示
+        total_coin_group = QGroupBox("总余额")
+        total_coin_layout = QVBoxLayout(total_coin_group)
+        self.total_coin_label = QLabel("0")
+        self.total_coin_label.setAlignment(Qt.AlignCenter)
+        self.total_coin_label.setStyleSheet("font-size: 24px; font-weight: bold;")
+        total_coin_layout.addWidget(self.total_coin_label)
 
-        total_balance_group.setLayout(total_layout)
-        layout.addWidget(total_balance_group)
+        # 设备余额列表
+        device_coin_group = QGroupBox("各设备余额")
+        device_coin_layout = QVBoxLayout(device_coin_group)
+        self.device_coin_table = QTableWidget()
+        self.device_coin_table.setColumnCount(3)
+        self.device_coin_table.setHorizontalHeaderLabels([
+            "设备地址", "余额", "最近过期时间"
+        ])
+        self.device_coin_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        device_coin_layout.addWidget(self.device_coin_table)
 
-        # 各设备余额信息
-        device_balance_group = QGroupBox("各设备余额信息")
-        device_layout = QVBoxLayout()
+        overview_layout.addWidget(total_coin_group, 1)
+        overview_layout.addWidget(device_coin_group, 2)
 
-        self.device_balance_table = QTableWidget()
-        self.device_balance_table.setColumnCount(3)
-        self.device_balance_table.setHorizontalHeaderLabels(["设备ID", "余额", "最近过期时间"])
-        self.device_balance_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        device_layout.addWidget(self.device_balance_table)
-
-        device_balance_group.setLayout(device_layout)
-        layout.addWidget(device_balance_group)
-
-        # 代币使用记录
+        # 代币使用记录区域
         record_group = QGroupBox("代币使用记录")
-        record_layout = QVBoxLayout()
+        record_layout = QVBoxLayout(record_group)
 
-        self.coin_record_log = QTextEdit()
-        self.coin_record_log.setReadOnly(True)
-        record_layout.addWidget(self.coin_record_log)
+        self.record_table = QTableWidget()
+        self.record_table.setColumnCount(5)
+        self.record_table.setHorizontalHeaderLabels([
+            "设备地址", "小说名称", "章节名称", "使用数量", "时间"
+        ])
+        self.record_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        record_layout.addWidget(self.record_table)
 
-        record_group.setLayout(record_layout)
+        # 记录操作按钮
+        record_btn_layout = QHBoxLayout()
+        self.refresh_record_btn = QPushButton("刷新记录")
+        self.refresh_record_btn.clicked.connect(self.refresh_records)
+        record_btn_layout.addWidget(self.refresh_record_btn)
+        record_btn_layout.addStretch()
+        record_layout.addLayout(record_btn_layout)
+
+        layout.addLayout(overview_layout)
         layout.addWidget(record_group)
 
-    def update_balance_info(self):
-        """更新余额信息"""
-        # 总余额
-        total_coins = self.main_window.config_manager.get_total_coins()
-        self.total_balance_label.setText(f"所有设备代币总余额: {total_coins}")
+    def refresh_balance_info(self):
+        """刷新代币信息"""
+        try:
+            # 刷新总余额
+            total_balance = self.coin_manager.get_total_balance_all_devices()
+            self.total_coin_label.setText(str(total_balance))
 
-        # 最近过期时间
-        coins = self.main_window.config_manager.get_stats().get("coins", [])
-        if coins:
-            # 过滤掉余额为0的代币，然后找出最近的过期时间
-            valid_coins = [coin for coin in coins if coin.get("balance", 0) > 0]
-            if valid_coins:
-                nearest_expire = min(valid_coins, key=lambda x: x.get("expire_time", "无"))["expire_time"]
-                self.nearest_expire_label.setText(f"最近过期时间: {nearest_expire}")
-            else:
-                self.nearest_expire_label.setText("最近过期时间: 无")
-        else:
-            self.nearest_expire_label.setText("最近过期时间: 无")
+            # 刷新使用记录
+            self.refresh_records()
+        except Exception as e:
+            self.logger.error(f"刷新代币信息失败: {e}")
 
-        # 对coins列表按照device_serial进行分组，并计算每个设备的代币总余额和最近的过期时间
-        device_balance = {}
-        device_expire_time = {}
-        
-        for coin in coins:
-            device_serial = coin.get("device_serial", "无")
-            balance = coin.get("balance", 0)
-            expire_time = coin.get("expire_time", "无")
-            
-            # 累加设备余额
-            if device_serial in device_balance:
-                device_balance[device_serial] += balance
-            else:
-                device_balance[device_serial] = balance
-            
-            # 更新设备最近过期时间（选择最早的过期时间）
-            if device_serial in device_expire_time:
-                if expire_time != "无" and (device_expire_time[device_serial] == "无" or expire_time < device_expire_time[device_serial]):
-                    device_expire_time[device_serial] = expire_time
-            else:
-                device_expire_time[device_serial] = expire_time
+    def refresh_records(self):
+        """刷新代币使用记录"""
+        try:
+            records = self.coin_manager.get_all_records()
+            self.record_table.setRowCount(len(records))
 
-        # 对设备余额进行排序，先按照过期时间升序、余额降序
-        sorted_devices = sorted(device_balance.items(), key=lambda x: (device_expire_time.get(x[0], "无"), -x[1]))
-        
-        # 更新设备余额列表
-        self.device_balance_table.setRowCount(len(sorted_devices))
-        for i, (device_serial, balance) in enumerate(sorted_devices):
-            self.device_balance_table.setItem(i, 0, QTableWidgetItem(device_serial))
-            self.device_balance_table.setItem(i, 1, QTableWidgetItem(str(balance)))
-            expire_time = device_expire_time.get(device_serial, "无")
-            self.device_balance_table.setItem(i, 2, QTableWidgetItem(expire_time))
-
-        # 更新代币使用记录
-        self.coin_record_log.clear()
-        # 显示所有代币记录，按过期时间排序
-        sorted_coins = sorted(coins, key=lambda x: x.get("expire_time", "无"))
-        for coin in sorted_coins:
-            if coin.get("balance", 0) > 0:  # 只显示余额大于0的代币
-                record = f"[{coin.get('expire_time', '无')}] 设备 {coin.get('device_serial', '无')} 余额: {coin.get('balance', 0)}/{coin.get('amount', 0)}"
-                self.coin_record_log.append(record)
+            for row, record in enumerate(records):
+                self.record_table.setItem(row, 0, QTableWidgetItem(record.device_address))
+                self.record_table.setItem(row, 1, QTableWidgetItem(record.novel_name))
+                self.record_table.setItem(row, 2, QTableWidgetItem(record.chapter_name))
+                self.record_table.setItem(row, 3, QTableWidgetItem(str(record.coins_used)))
+                self.record_table.setItem(row, 4, QTableWidgetItem(record.timestamp))
+        except Exception as e:
+            self.logger.error(f"刷新代币使用记录失败: {e}")

@@ -2,3 +2,6 @@
 
 # PySide6 GUI框架
 PySide6>=6.0.0
+
+# MaaFramework 核心框架
+MaaFramework>=1.0.0

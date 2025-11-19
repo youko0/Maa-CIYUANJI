@@ -23,15 +23,12 @@
 - 多设备协同识别，避免重复处理
 - 章节内容一键导出为TXT文件
 - 友好的PySide6图形界面
-- 完整的日志记录和日志文件
+- 完整的日志记录和日志文件轮转
 - MAA框架设备检测与管理
 
 ## 即刻开始
 
-- [📄 快速开始](https://github.com/MaaXYZ/MaaFramework/blob/main/docs/zh_cn/1.1-%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B.md)
-- [🎞️ 视频教程](https://www.bilibili.com/video/BV1yr421E7MW)
-
-## 环境配置
+### 环境配置
 
 1. 确保已安装conda，并创建了名为`Maa-WJDR`的虚拟环境
 
@@ -60,29 +57,35 @@
 
     若报错 `File Not Found: XXXXXX`，则说明上一步 MaaCommonAssets 未正常下载，请再次检查！
 
-6. 安装PySide6：
+6. 安装依赖：
 
     ```bash
     conda activate Maa-WJDR
-    pip install PySide6
+    pip install -r requirements.txt
     ```
 
-## 如何使用
+### 如何使用
 
 1. 运行主程序：
 
     ```bash
+    # Windows系统可直接运行 start.bat
+    start.bat
+    
+    # 或者使用命令行
     conda activate Maa-WJDR
     python main.py
     ```
 
-2. 在界面中设置目标小说及章节范围
+2. 在界面中扫描并连接设备
 
-3. 点击"签到"获取代币
+3. 添加目标小说及设置章节范围
 
-4. 点击"识别小说"开始处理小说内容
+4. 点击"签到"获取代币
 
-5. 处理完成后可点击"导出小说"将内容保存为TXT文件
+5. 点击"识别小说"开始处理小说内容
+
+6. 处理完成后可点击"导出小说"将内容保存为TXT文件
 
 ## 项目结构
 
@@ -93,19 +96,52 @@ Maa-CIYUANJI/
 │   ├── my_action.py        # 自定义动作
 │   └── my_reco.py          # 自定义识别
 ├── assets/                 # 资源文件
+│   ├── MaaCommonAssets/    # 通用资源文件
+│   ├── resource/           # 项目资源文件
+│   └── interface.json      # 接口配置文件
+├── configs/                # 配置文件目录
+├── core/                   # 核心业务逻辑模块
+│   ├── device_manager.py   # 设备管理模块
+│   ├── novel_manager.py    # 小说管理模块
+│   └── coin_manager.py     # 代币管理模块
 ├── logs/                   # 日志文件目录
 ├── novels/                 # 小说内容保存目录
-├── config_manager.py       # 配置管理模块
-├── device_manager.py       # 设备管理模块
-├── logger.py               # 日志管理模块
-├── novel_processor.py      # 小说处理模块
-├── main_ui.py              # 主界面模块
-├── main.py                 # 稨序入口
-├── config.json             # 用户配置文件
-├── stats.json              # 运行状态文件
-├── devices.json            # 设备配置文件
+├── ui/                     # 用户界面模块
+│   └── main_window.py      # 主界面模块
+├── utils/                  # 工具模块
+│   ├── logger.py           # 日志管理模块
+│   └── config_manager.py   # 配置管理模块
+├── main.py                 # 程序入口
+├── start.bat               # 启动脚本
+├── requirements.txt        # 项目依赖文件
+├── demand.md               # 需求文档
 └── README.md               # 说明文档
 ```
+
+## 核心功能说明
+
+### 设备管理
+- 扫描并连接安卓设备
+- 支持多设备同时管理
+- 设备状态实时监控
+
+### 小说管理
+- 添加/删除小说
+- 设置识别章节范围
+- 查看识别进度
+- 章节内容保存为JSON格式
+- 一键导出为TXT文件
+
+### 代币管理
+- 每日自动签到获取代币
+- 代币有效期管理（7天）
+- 智能代币消耗策略（优先使用即将过期的代币）
+- 代币使用记录追踪
+
+### 多设备协同
+- 支持多个设备同时识别同一本小说
+- 每个设备只处理未被其他设备处理过的章节
+- 通过配置文件记录每个章节由哪个设备处理，避免重复识别
 
 ## 代币机制
 
@@ -113,11 +149,11 @@ Maa-CIYUANJI/
 - 每天签到可获得代币，有效期为7天
 - 使用代币购买付费章节时，优先扣除距离过期时间最短的代币
 
-## 多设备协同
+## 日志系统
 
-- 支持多个设备同时识别同一本小说
-- 每个设备只处理未被其他设备处理过的章节
-- 通过状态文件记录每个章节由哪个设备处理
+- 主日志文件：logs/app.log
+- 设备独立日志：logs/{设备地址}/device.log
+- 日志文件每日自动轮转，保留30天
 
 ## 生态共建
 
@@ -162,6 +198,6 @@ Win10 或者 Win11 系统自带了一份 "Python"，但它其实只是一个安�
 
 本项目由 **[MaaFramework](https://github.com/MaaXYZ/MaaFramework)** 强力驱动！
 
-感谢以下开发者对本项目作出的贡献（下面链接改成你自己的项目地址）:
+感谢以下开发者对本项目作出的贡献：
 
 [![Contributors](https://contrib.rocks/image?repo=MaaXYZ/MaaFramework&max=1000)](https://github.com/MaaXYZ/MaaFramework/graphs/contributors)

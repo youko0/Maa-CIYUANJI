@@ -6,7 +6,8 @@
   "scripts": {
     "start": "python main.py",
     "configure": "python configure.py",
-    "install": "python install.py"
+    "install": "python install.py",
+    "install-deps": "pip install -r requirements.txt"
   },
   "keywords": [
     "maaframework",
