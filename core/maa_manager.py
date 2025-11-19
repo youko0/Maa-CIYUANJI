@@ -232,3 +232,12 @@ class MaaFrameworkManager:
             是否已连接
         """
         return device_serial in self.device_instances
+
+    def get_connected_device_info_list(self) -> List[DeviceInfo]:
+        """
+        获取已连接的设备序列号列表
+
+        Returns:
+            已连接设备的序列号列表
+        """
+        return list(self.device_infos.values())

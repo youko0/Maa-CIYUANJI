@@ -12,9 +12,10 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 
+from modules.device_task_thread_manager import device_task_thread_manager
 from ui.device_dialog import DeviceConnectionDialog
-from core.maa_manager import MaaFrameworkManager
 from utils.logger import get_logger
+from utils.time_utils import TimeUtils
 
 
 class HomeTab(QWidget):
@@ -24,9 +25,12 @@ class HomeTab(QWidget):
         super().__init__()
         self.maa_manager = maa_manager
         self.config_manager = config_manager
-        self.logger = get_logger(__name__)
+        self.logger = get_logger()
 
         self.init_ui()
+
+        # 任务线程管理器
+        self.task_thread_manager = device_task_thread_manager
 
     def init_ui(self):
         """初始化UI"""
@@ -131,13 +135,8 @@ class HomeTab(QWidget):
                 connect_btn.clicked.connect(
                     lambda checked, addr=device_serial: self.toggle_device_connection(addr)
                 )
-                sign_in_btn = QPushButton("签到")
-                sign_in_btn.clicked.connect(
-                    lambda checked, addr=device_serial: self.sign_in_device(addr)
-                )
 
                 btn_layout.addWidget(connect_btn)
-                btn_layout.addWidget(sign_in_btn)
                 btn_layout.addStretch()
 
                 self.device_table.setCellWidget(row, 4, btn_widget)
@@ -154,14 +153,28 @@ class HomeTab(QWidget):
 
     def one_click_check_in(self):
         """一键签到"""
-
-    def sign_in_device(self, address: str):
-        """为设备签到"""
-        try:
-            pass
-            self.refresh_device_list()
-        except Exception as e:
-            self.logger.error(f"设备签到失败: {e}")
+        device_info_list = self.maa_manager.get_connected_device_info_list()
+        for device_info in device_info_list:
+            # 判断今天是否已经进行签到
+            if device_info.last_sign_in_time is None or TimeUtils.is_today(device_info.last_sign_in_time) is False:
+                tasker = self.maa_manager.get_device_tasker(device_info.device_serial)
+                # 执行签到逻辑
+                task_thread = self.task_thread_manager.start_device_task(
+                    device_serial=device_info.device_serial,
+                    tasker=tasker,
+                    task_name="signIn"
+                )
+                if task_thread:
+                    # 连接任务线程的信号
+                    # task_thread.user_data_updated.connect(self._on_user_data_updated)
+                    # task_thread.execution_stopped.connect(self._stop_device_tasks)
+                    #
+                    # self.is_task_running = True
+                    # self._update_task_button_state()
+                    # self.task_status_changed.emit(self.device_serial, True)
+                    self.logger.info("任务启动成功")
+                else:
+                    self.logger.info("任务启动失败")
 
     def clear_logs(self):
         """清空日志"""

@@ -21,7 +21,7 @@ class NovelTab(QWidget):
         super().__init__()
         self.novel_manager = novel_manager
         self.config_manager = config_manager
-        self.logger = get_logger(__name__)
+        self.logger = get_logger()
         
         self.init_ui()
 

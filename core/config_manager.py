@@ -7,9 +7,8 @@
 """
 
 import json
-import os
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from utils.logger import get_logger
 
@@ -20,7 +19,7 @@ class ConfigManager:
     def __init__(self, config_file: str = "configs/config.json", stats_file: str = "configs/stats.json"):
         self.config_file = Path(config_file)
         self.stats_file = Path(stats_file)
-        self.logger = get_logger(__name__)
+        self.logger = get_logger()
         
         # 确保配置目录存在
         self.config_file.parent.mkdir(parents=True, exist_ok=True)

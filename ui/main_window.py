@@ -37,7 +37,7 @@ class MainWindow(QMainWindow):
         self.balance_manager = BalanceManager(config_manager)
         # 初始化MaaFramework组件
         self.maa_manager = MaaFrameworkManager(config_manager=config_manager)
-        self.logger = get_logger(__name__)
+        self.logger = get_logger()
 
         # 定时器用于定期刷新界面
         self.refresh_timer = QTimer()

@@ -14,10 +14,17 @@
     "timeout": 1200,
     "describe": "判断是否存在签到任务页面入口，存在则点击"
   },
+  "existsRulesDescription": {
+    "recognition": "OCR",
+    "expected": "^规则说明$",
+    "timeout": 2000,
+    "describe": "判断是否存在规则说明，存在则说明已经进入指定页面"
+  },
+
   "existsSignInSuccessTip": {
     "recognition": "OCR",
     "expected": "签到成功",
-    "timeout": 2000,
+    "timeout": 1200,
     "describe": "判断是否存在签到成功提示，存在则点击"
   },
   "existsSignInPageFlag": {

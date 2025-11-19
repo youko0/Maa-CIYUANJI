@@ -89,7 +89,7 @@ class NovelManager:
     
     def __init__(self, config_manager: ConfigManager):
         self.config_manager = config_manager
-        self.logger = get_logger(__name__)
+        self.logger = get_logger()
         self.novels: Dict[str, NovelInfo] = {}  # name -> NovelInfo
         
         # 创建小说数据目录

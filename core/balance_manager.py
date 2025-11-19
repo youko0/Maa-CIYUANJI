@@ -75,7 +75,7 @@ class BalanceManager:
     
     def __init__(self, config_manager: ConfigManager):
         self.config_manager = config_manager
-        self.logger = get_logger(__name__)
+        self.logger = get_logger()
         
         # 加载代币使用记录
         self.records: List[BalanceRecord] = []

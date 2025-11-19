@@ -12,7 +12,7 @@ from pathlib import Path
 from PySide6.QtWidgets import QApplication
 
 from ui.main_window import MainWindow
-from utils.logger import setup_logger
+from utils.logger import get_logger
 from core.config_manager import ConfigManager
 
 
@@ -33,22 +33,22 @@ def load_configs():
 def main():
     # 初始化目录
     init_directories()
-    
-    # 设置日志
-    setup_logger()
-    
+
+    # 初始化日志记录器
+    get_logger()
+
     # 加载配置
     config_manager = load_configs()
-    
+
     # 创建Qt应用
     app = QApplication(sys.argv)
     app.setApplicationName("次元姬小说助手")
     app.setApplicationVersion("1.0.0")
-    
+
     # 创建主窗口
     window = MainWindow(config_manager)
     window.show()
-    
+
     # 运行应用
     sys.exit(app.exec())
 

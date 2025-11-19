@@ -22,7 +22,7 @@ class BalanceTab(QWidget):
         super().__init__()
         self.coin_manager = coin_manager
         self.config_manager = config_manager
-        self.logger = get_logger(__name__)
+        self.logger = get_logger()
         
         self.init_ui()
 

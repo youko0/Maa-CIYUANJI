@@ -1,0 +1,25 @@
+{
+  "waitingAppStartEnd": {
+    "pre_wait_freezes": {
+      "time": 500,
+      "target": [7, 1006, 712, 273],
+      "threshold": 0.9,
+      "describe": "等待出现书架"
+    },
+    "next": "existBookshelf"
+  },
+  "waitingPageLoadEnd": {
+    "pre_wait_freezes": {
+      "time": 500,
+      "target": [7, 1006, 712, 273],
+      "threshold": 0.9,
+      "describe": "等待页面加载结束"
+    }
+  },
+  "androidBack": {
+    "action": "ClickKey",
+    "key": 4,
+    "timeout": 1000,
+    "describe": "调用设备返回键"
+  }
+}
