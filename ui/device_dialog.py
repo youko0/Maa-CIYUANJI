@@ -58,6 +58,7 @@ class DeviceConnectionDialog(QDialog):
 
     # 信号定义
     device_selected = Signal(object)  # 设备选择信号
+    device_connect_completed = Signal()  # 设备连接完成事件
 
     def __init__(self, maa_manager: MaaFrameworkManager, parent=None):
         super().__init__(parent)
@@ -148,6 +149,10 @@ class DeviceConnectionDialog(QDialog):
         self.connect_btn.setMinimumHeight(35)
         self.connect_btn.setEnabled(False)
 
+        self.connect_all_btn = QPushButton("连接所有设备")
+        self.connect_all_btn.setMinimumHeight(35)
+        self.connect_all_btn.setEnabled(False)
+
         self.close_btn = QPushButton("关闭")
         self.close_btn.setMinimumHeight(35)
 
@@ -159,6 +164,7 @@ class DeviceConnectionDialog(QDialog):
         button_layout.addStretch()
         button_layout.addWidget(self.refresh_btn)
         button_layout.addWidget(self.connect_btn)
+        button_layout.addWidget(self.connect_all_btn)
         button_layout.addWidget(self.close_btn)
 
         parent_layout.addLayout(button_layout)
@@ -191,6 +197,7 @@ class DeviceConnectionDialog(QDialog):
         """连接信号和槽"""
         self.refresh_btn.clicked.connect(self._start_device_discovery)
         self.connect_btn.clicked.connect(self._connect_selected_device)
+        self.connect_all_btn.clicked.connect(self._connect_all_devices)
         self.close_btn.clicked.connect(self.reject)
         self.select_all_btn.clicked.connect(self._select_all_devices)
 
@@ -246,6 +253,9 @@ class DeviceConnectionDialog(QDialog):
         """更新设备表格"""
         self.device_table.setRowCount(len(self.devices))
 
+        # 更新连接所有设备按钮的状态
+        has_unconnected_devices = False
+
         for i, device in enumerate(self.devices):
             # 设备名称
             name_item = QTableWidgetItem(device.name or "未知设备")
@@ -265,7 +275,12 @@ class DeviceConnectionDialog(QDialog):
             status_item = QTableWidgetItem(status)
             if status == "已连接":
                 status_item.setBackground(Qt.GlobalColor.green)
+            else:
+                has_unconnected_devices = True
             self.device_table.setItem(i, 3, status_item)
+
+        # 根据是否有未连接的设备来启用/禁用连接所有设备按钮
+        self.connect_all_btn.setEnabled(has_unconnected_devices and len(self.devices) > 0)
 
     def _select_all_devices(self):
         """全选所有设备"""
@@ -288,6 +303,15 @@ class DeviceConnectionDialog(QDialog):
         selected_rows = self.device_table.selectionModel().selectedRows()
         self.connect_btn.setEnabled(len(selected_rows) > 0)
 
+    def _connect_all_devices(self):
+        """连接所有设备"""
+        for device in self.devices:
+            if self.maa_manager.is_device_connected(device.address):
+                continue
+            self.maa_manager.connect_device(device)
+
+        self.device_connect_completed.emit()
+        self.accept()
     def _connect_selected_device(self):
         """连接选中的设备"""
         selected_rows = self.device_table.selectionModel().selectedRows()

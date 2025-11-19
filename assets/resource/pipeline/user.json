@@ -16,11 +16,11 @@
   },
   "existsRulesDescription": {
     "recognition": "OCR",
+    "roi": [554, 19, 165, 156],
     "expected": "^规则说明$",
-    "timeout": 2000,
+    "timeout": 12000,
     "describe": "判断是否存在规则说明，存在则说明已经进入指定页面"
   },
-
   "existsSignInSuccessTip": {
     "recognition": "OCR",
     "expected": "签到成功",
@@ -65,5 +65,20 @@
     "roi": [87, 152, 133, 1127],
     "timeout": 1000,
     "describe": "识别硬币明细数量"
+  },
+  "existsTeenModeTips": {
+    "recognition": "OCR",
+    "roi": [14, 690, 700, 589],
+    "expected": "^青少年模式$",
+    "timeout": 1200,
+    "describe": "判断是否存在青少年模式提示，存在则点击"
+  },
+  "existsAndClickISeeBtn": {
+    "recognition": "OCR",
+    "roi": [14, 690, 700, 589],
+    "expected": "我知道了$",
+    "action": "click",
+    "timeout": 1200,
+    "describe": "判断是否存在我知道了按钮，存在则点击"
   }
 }

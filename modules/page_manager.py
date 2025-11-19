@@ -68,11 +68,18 @@ class PageManager:
 
         self.logger.info('尝试重启应用')
         self.tasker.controller.post_stop_app("com.xunyou.rb").wait()
-        self.logger.info('关闭应用，等待5秒...')
-        time.sleep(5)
+        self.logger.info('关闭应用，等待3秒...')
+        time.sleep(3)
         self.logger.info('启动应用，等待8秒启动时间...')
         self.tasker.controller.post_start_app("com.xunyou.rb").wait()
-        time.sleep(8)
+        time.sleep(3)
+        # 判断是否出现了用户协议和隐私条款
+        result_succeeded = self.tasker.post_task("existAndClickAgreement").wait().succeeded
+        if result_succeeded:
+            self.logger.error(f"存在用户协议和隐私条款，点击同意并继续")
+            time.sleep(0.2)
+            self.tasker.post_task("existAndClickAgreeAndContinueBtn").wait()
+        time.sleep(4)
         self.callback_caller(caller)
 
     def check_is_home_page(self, is_back_home=True, max_attempts=5, is_reconnect=True):

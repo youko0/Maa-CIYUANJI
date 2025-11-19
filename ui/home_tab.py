@@ -90,6 +90,7 @@ class HomeTab(QWidget):
         # 创建连接设备对话框
         dialog = DeviceConnectionDialog(self.maa_manager)
         dialog.device_selected.connect(self._connect_device)
+        dialog.device_connect_completed.connect(self.refresh_device_list)
         if dialog.exec() == DeviceConnectionDialog.DialogCode.Accepted:
             # 设备连接对话框关闭
             pass

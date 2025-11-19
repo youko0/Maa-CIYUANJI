@@ -39,16 +39,27 @@ class UserLogic:
         # 进入签到任务页面
         result_succeeded = self.tasker.post_task("existsAndClickSignInEntrance").wait().succeeded
         if result_succeeded is False:
-            self.logger.error(f"[签到]没有识别到签到入口按钮")
-            return False
+            self.logger.error(f"[签到]没有识别到签到入口按钮，判断是否存在青少年模式提示")
+            # 判断是否出现了青少年模拟提示
+            result_succeeded = self.tasker.post_task("existsTeenModeTips").wait().succeeded
+            if result_succeeded is False:
+                self.logger.error(f"[签到]没有出现青少年模式提示，任务结束")
+                return False
+            else:
+                # 点击我知道了
+                self.tasker.post_task("existsAndClickISeeBtn").wait()
+                time.sleep(0.3)
+                result_succeeded = self.tasker.post_task("existsAndClickSignInEntrance").wait().succeeded
+                if result_succeeded is False:
+                    self.logger.error(f"[签到]没有识别到签到入口按钮，任务结束")
+                    return False
 
-        # 等待页面加载结束
-        self.tasker.post_task("waitingPageLoadEnd").wait()
-        # 判断是否成功进入签到成功页面
+        # 等待页面加载结束（判断是否成功进入签到成功页面）
         result_succeeded = self.tasker.post_task("existsRulesDescription").wait().succeeded
         if result_succeeded is False:
             self.logger.error(f"[签到]没有正常进入签到成功页面")
             return False
+
         self.logger.info(f"[签到]成功进入签到成功页面")
         # 判断是否存在签到成功提示
         if self.tasker.post_task("existsSignInSuccessTip").wait().succeeded:
@@ -63,9 +74,6 @@ class UserLogic:
 
             else:
                 self.logger.error(f"{self.device_serial}设备没有识别到代币数量")
-            # 调用返回按钮
-            self.tasker.post_task("androidBack").wait()
-
         else:
             # 签到失败
             self.logger.error(f"[签到]设备已签到")

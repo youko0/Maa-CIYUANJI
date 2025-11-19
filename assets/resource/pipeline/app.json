@@ -21,5 +21,22 @@
     "key": 4,
     "timeout": 1000,
     "describe": "调用设备返回键"
+  },
+  "existAndClickAgreement": {
+    "recognition": "OCR",
+    "roi": [3, 853, 712, 340],
+    "expected": "^我已经阅读同意用户协议和隐私政策$",
+    "action": "click",
+    "target_offset": [-44, -1, -356, 1],
+    "timeout": 1000,
+    "describe": "判断是否存在青少年模式提示，存在则点击"
+  },
+  "existAndClickAgreeAndContinueBtn": {
+    "recognition": "OCR",
+    "roi": [3, 853, 712, 340],
+    "expected": "^同意并继续$",
+    "action": "click",
+    "timeout": 1000,
+    "describe": "判断是否存在同意并继续按钮，存在则点击"
   }
 }
