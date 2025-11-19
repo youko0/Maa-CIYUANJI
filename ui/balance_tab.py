@@ -12,16 +12,18 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 
+from core.balance_manager import get_balance_manager
+from core.config_manager import get_config_manager
 from utils.logger import get_logger
 
 
 class BalanceTab(QWidget):
     """余额标签页"""
 
-    def __init__(self, coin_manager, config_manager):
+    def __init__(self):
         super().__init__()
-        self.coin_manager = coin_manager
-        self.config_manager = config_manager
+        self.balance_manager = get_balance_manager()
+        self.config_manager = get_config_manager()
         self.logger = get_logger()
         
         self.init_ui()
@@ -82,7 +84,7 @@ class BalanceTab(QWidget):
         """刷新代币信息"""
         try:
             # 刷新总余额
-            total_balance = self.coin_manager.get_total_balance_all_devices()
+            total_balance = self.balance_manager.get_total_balance_all_devices()
             self.total_coin_label.setText(str(total_balance))
 
             # 刷新使用记录
@@ -93,7 +95,7 @@ class BalanceTab(QWidget):
     def refresh_records(self):
         """刷新代币使用记录"""
         try:
-            records = self.coin_manager.get_all_records()
+            records = self.balance_manager.get_all_records()
             self.record_table.setRowCount(len(records))
 
             for row, record in enumerate(records):

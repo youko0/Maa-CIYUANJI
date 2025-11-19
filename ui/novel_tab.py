@@ -11,18 +11,20 @@ from PySide6.QtWidgets import (
     QTextEdit, QPushButton, QHeaderView, QDialog, QLineEdit, QFormLayout
 )
 
+from core.config_manager import get_config_manager
+from core.novel_manager import get_novel_manager
 from utils.logger import get_logger
 
 
 class NovelTab(QWidget):
     """小说标签页"""
 
-    def __init__(self, novel_manager, config_manager):
+    def __init__(self):
         super().__init__()
-        self.novel_manager = novel_manager
-        self.config_manager = config_manager
+        self.novel_manager = get_novel_manager()
+        self.config_manager = get_config_manager()
         self.logger = get_logger()
-        
+
         self.init_ui()
 
     def init_ui(self):

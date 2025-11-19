@@ -71,6 +71,7 @@ class UserLogic:
                 expire_time = (datetime.now() + timedelta(days=7)).strftime("%Y-%m-%d")
                 # self.config_manager.add_coin(self.device_serial, int(coin_num_str), expire_time)
                 print(f"{self.device_serial}设备签到成功，添加代币：{coin_num_str}，过期时间：{expire_time}")
+                # 更新设备信息及余额数据
 
             else:
                 self.logger.error(f"{self.device_serial}设备没有识别到代币数量")

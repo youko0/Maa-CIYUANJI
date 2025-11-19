@@ -18,7 +18,7 @@ from maa.toolkit import Toolkit, AdbDevice
 from maa.resource import Resource
 from maa.controller import AdbController
 
-from core.config_manager import ConfigManager
+from core.config_manager import get_config_manager
 from core.domain.device_info import DeviceInfo
 
 
@@ -28,7 +28,7 @@ class MaaFrameworkManager:
     负责设备连接、资源管理和设备隔离
     """
 
-    def __init__(self, resource_path: str = "assets/resource", config_manager: ConfigManager = None):
+    def __init__(self, resource_path: str = "assets/resource"):
         """
         初始化MaaFramework环境
         
@@ -43,7 +43,7 @@ class MaaFrameworkManager:
         # self.resource.use_cpu()
         self.resource_path = resource_path
 
-        self.config_manager = config_manager
+        self.config_manager = get_config_manager()
 
         # 存储设备实例的字典
         self.device_instances: Dict[str, Tasker] = {}
@@ -241,3 +241,15 @@ class MaaFrameworkManager:
             已连接设备的序列号列表
         """
         return list(self.device_infos.values())
+
+
+# 全局maa管理器实例
+_MAA_MANAGER = None
+
+
+def get_maa_manager() -> MaaFrameworkManager:
+    """获取全局maa管理器实例"""
+    global _MAA_MANAGER
+    if _MAA_MANAGER is None:
+        _MAA_MANAGER = MaaFrameworkManager()
+    return _MAA_MANAGER

@@ -84,3 +84,14 @@ class ConfigManager:
     def save_stats(self) -> bool:
         """保存状态文件"""
         return self._save_json_file(self.stats_file, self.stats_data)
+
+
+# 全局配置管理器实例
+_CONFIG_MANAGER = None
+
+def get_config_manager():
+    """获取全局配置管理器实例"""
+    global _CONFIG_MANAGER
+    if _CONFIG_MANAGER is None:
+        _CONFIG_MANAGER = ConfigManager()
+    return _CONFIG_MANAGER

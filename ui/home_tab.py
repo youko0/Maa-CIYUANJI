@@ -12,7 +12,9 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 
-from modules.device_task_thread_manager import device_task_thread_manager
+from core.config_manager import get_config_manager
+from core.maa_manager import get_maa_manager
+from modules.device_task_thread_manager import get_device_task_thread_manager
 from ui.device_dialog import DeviceConnectionDialog
 from utils.logger import get_logger
 from utils.time_utils import TimeUtils
@@ -21,16 +23,16 @@ from utils.time_utils import TimeUtils
 class HomeTab(QWidget):
     """主页标签页"""
 
-    def __init__(self, maa_manager, config_manager):
+    def __init__(self):
         super().__init__()
-        self.maa_manager = maa_manager
-        self.config_manager = config_manager
+        self.maa_manager = get_maa_manager()
+        self.config_manager = get_config_manager()
         self.logger = get_logger()
 
         self.init_ui()
 
         # 任务线程管理器
-        self.task_thread_manager = device_task_thread_manager
+        self.task_thread_manager = get_device_task_thread_manager()
 
     def init_ui(self):
         """初始化UI"""

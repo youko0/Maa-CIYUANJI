@@ -29,14 +29,12 @@ from utils.logger import get_logger
 class MainWindow(QMainWindow):
     """主窗口"""
 
-    def __init__(self, config_manager):
+    def __init__(self):
         super().__init__()
-        self.config_manager = config_manager
-
-        self.novel_manager = NovelManager(config_manager)
-        self.balance_manager = BalanceManager(config_manager)
+        self.novel_manager = NovelManager()
+        self.balance_manager = BalanceManager()
         # 初始化MaaFramework组件
-        self.maa_manager = MaaFrameworkManager(config_manager=config_manager)
+        self.maa_manager = MaaFrameworkManager()
         self.logger = get_logger()
 
         # 定时器用于定期刷新界面
@@ -73,9 +71,9 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(tab_widget)
 
         # 创建各个标签页
-        self.home_tab = HomeTab(self.maa_manager, self.config_manager)
-        self.novel_tab = NovelTab(self.novel_manager, self.config_manager)
-        self.balance_tab = BalanceTab(self.balance_manager, self.config_manager)
+        self.home_tab = HomeTab()
+        self.novel_tab = NovelTab()
+        self.balance_tab = BalanceTab()
 
         tab_widget.addTab(self.home_tab, "主页")
         tab_widget.addTab(self.novel_tab, "小说")

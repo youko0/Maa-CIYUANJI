@@ -125,5 +125,13 @@ class DeviceTaskThreadManager:
             del self.device_threads[device_serial]
 
 
+
 # 全局设备任务管理器实例
-device_task_thread_manager = DeviceTaskThreadManager()
+_DEVICE_TASK_THREAD_MANAGER = None
+
+def get_device_task_thread_manager():
+    """获取全局设备任务管理器实例"""
+    global _DEVICE_TASK_THREAD_MANAGER
+    if _DEVICE_TASK_THREAD_MANAGER is None:
+        _DEVICE_TASK_THREAD_MANAGER = DeviceTaskThreadManager()
+    return _DEVICE_TASK_THREAD_MANAGER
