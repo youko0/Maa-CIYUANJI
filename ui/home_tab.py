@@ -31,6 +31,7 @@ class HomeTab(QWidget):
     def __init__(self):
         super().__init__()
         self.maa_manager = get_maa_manager()
+        self.maa_manager.device_info_changed_event.connect(self.refresh_device_list)
         self.config_manager = get_config_manager()
 
         # 初始化UI
@@ -176,16 +177,17 @@ class HomeTab(QWidget):
 
     def refresh_device_list(self):
         """刷新设备列表"""
+        self.logger.info("刷新设备列表")
         try:
-            device_serial_list = self.maa_manager.get_connected_device_serial_list()
-            self.device_table.setRowCount(len(device_serial_list))
+            device_info_list = self.maa_manager.get_connected_device_info_list()
+            self.device_table.setRowCount(len(device_info_list))
 
-            for row, device_serial in enumerate(device_serial_list):
+            for row, device_info in enumerate(device_info_list):
                 self.device_table.setItem(row, 0, QTableWidgetItem(""))
-                self.device_table.setItem(row, 1, QTableWidgetItem(device_serial))
-                self.device_table.setItem(row, 2, QTableWidgetItem("0"))
+                self.device_table.setItem(row, 1, QTableWidgetItem(device_info.device_serial))
+                self.device_table.setItem(row, 2, QTableWidgetItem(str(device_info.balance)))
 
-                last_sign_in = "从未"
+                last_sign_in = "从未" if device_info.last_sign_in_time is None else device_info.last_sign_in_time.strftime("%Y-%m-%d %H:%M:%S")
                 self.device_table.setItem(row, 3, QTableWidgetItem(last_sign_in))
 
                 # 操作按钮
@@ -195,7 +197,7 @@ class HomeTab(QWidget):
 
                 connect_btn = QPushButton("连接" if "已连接" != "已连接" else "断开")
                 connect_btn.clicked.connect(
-                    lambda checked, addr=device_serial: self.toggle_device_connection(addr)
+                    lambda checked, addr=device_info.device_serial: self.toggle_device_connection(addr)
                 )
 
                 btn_layout.addWidget(connect_btn)
@@ -265,6 +267,7 @@ class HomeTab(QWidget):
         """清理资源"""
         # 不需要特殊清理，Qt信号处理器会自动管理
         pass
+
 
 class DeviceConnectionThread(QThread):
     """设备连接线程"""

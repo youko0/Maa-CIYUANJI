@@ -11,6 +11,7 @@ import os
 from typing import Dict, List, Optional, Any, Callable
 from dataclasses import dataclass, asdict
 
+from PySide6.QtCore import QObject, Signal
 import maa
 # MaaFramework相关导入
 from maa.tasker import Tasker
@@ -18,15 +19,18 @@ from maa.toolkit import Toolkit, AdbDevice
 from maa.resource import Resource
 from maa.controller import AdbController
 
+from core.balance_manager import get_balance_manager, BalanceInfo
 from core.config_manager import get_config_manager
 from core.domain.device_info import DeviceInfo
+from demo.test1 import device_instances
 
 
-class MaaFrameworkManager:
+class MaaFrameworkManager(QObject):
     """
     基于MaaFramework的设备管理器
     负责设备连接、资源管理和设备隔离
     """
+    device_info_changed_event = Signal()  # 设备信息变更事件
 
     def __init__(self, resource_path: str = "assets/resource"):
         """
@@ -35,6 +39,7 @@ class MaaFrameworkManager:
         Args:
             resource_path: 资源路径
         """
+        super().__init__()
         # 初始化工具包选项
         Toolkit.init_option("./")
 
@@ -44,6 +49,7 @@ class MaaFrameworkManager:
         self.resource_path = resource_path
 
         self.config_manager = get_config_manager()
+        self.balance_manager = get_balance_manager()
 
         # 存储设备实例的字典
         self.device_instances: Dict[str, Tasker] = {}
@@ -174,6 +180,8 @@ class MaaFrameworkManager:
             self.device_instances[device_serial] = tasker
             self.device_controllers[device_serial] = controller
             self.device_infos[device_serial] = DeviceInfo(device_serial)
+            # 初始化设备余额信息
+            self.balance_manager.init_balance(device_serial)
 
             self.logger.info(f"设备连接成功: {device_serial}")
             return tasker
@@ -191,11 +199,13 @@ class MaaFrameworkManager:
         """
         try:
             if device_serial in self.device_instances:
+                # 保存设备信息和余额信息
+
                 # 清理资源
                 if device_serial in self.device_controllers:
                     del self.device_controllers[device_serial]
-
                 del self.device_instances[device_serial]
+                del self.device_infos[device_serial]
                 self.logger.info(f"设备已断开: {device_serial}")
         except Exception as e:
             self.logger.error(f"断开设备 {device_serial} 时出错: {e}")
@@ -232,6 +242,18 @@ class MaaFrameworkManager:
             是否已连接
         """
         return device_serial in self.device_instances
+
+    def get_device_info(self, device_serial: str) -> Optional[DeviceInfo]:
+        """
+        获取设备对应的DeviceInfo实例
+
+        Args:
+            device_serial: 设备序列号
+
+        Returns:
+            设备对应的DeviceInfo实例
+        """
+        return self.device_infos.get(device_serial)
 
     def get_connected_device_info_list(self) -> List[DeviceInfo]:
         """
@@ -280,6 +302,37 @@ class MaaFrameworkManager:
         if logger:
             logger.info(f"一键连接完成，成功连接 {success_count} 个设备")
         return success_count > 0
+
+    def add_balance(self, device_serial: str, amount: int, expire_time: datetime):
+        """
+        添加代币
+
+        Args:
+            device_serial: 设备序列号
+            amount: 代币数量
+            expire_time: 过期时间
+        """
+        self.logger.info(f"设备添加代币: {amount} {expire_time}")
+        success = self.balance_manager.add_balance(device_serial, amount, expire_time)
+        if success:
+            # 更新设备最后签到时间和余额总数
+            device_info = self.get_device_info(device_serial)
+            device_info.last_sign_in_time = datetime.now()
+            device_info.balance += amount
+
+        # 通知设备列表刷新
+        self.device_info_changed_event.emit()
+
+    def refresh_balance(self, device_serial: str, total_balance: int, balance_info_list: List[BalanceInfo]):
+        """刷新设备余额信息"""
+        self.logger.info(f"刷新设备余额信息: {total_balance} ")
+        success = self.balance_manager.refresh_balance(device_serial, balance_info_list)
+        if success:
+            device_info = self.get_device_info(device_serial)
+            device_info.balance = total_balance
+
+        # 通知设备列表刷新
+        self.device_info_changed_event.emit()
 
 
 # 全局maa管理器实例

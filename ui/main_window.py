@@ -33,10 +33,10 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.logger = get_logger()
 
-        # 定时器用于定期刷新界面
-        self.refresh_timer = QTimer()
-        self.refresh_timer.timeout.connect(self.refresh_ui)
-        self.refresh_timer.start(5000)  # 每5秒刷新一次
+        # # 定时器用于定期刷新界面
+        # self.refresh_timer = QTimer()
+        # self.refresh_timer.timeout.connect(self.refresh_ui)
+        # self.refresh_timer.start(5000)  # 每5秒刷新一次
 
         self.home_tab = None
         self.novel_tab = None

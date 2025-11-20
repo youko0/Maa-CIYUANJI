@@ -7,7 +7,7 @@
 """
 
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, Dict
 from dataclasses import dataclass, asdict
 from typing import List
 
@@ -22,6 +22,12 @@ class BalanceInfo:
     amount: int  # 代币数量
     balance: int  # 余额
     expire_time: datetime  # 过期时间，格式: yyyy-MM-dd HH:mm:ss
+
+    def __init__(self, device_serial: str, amount: int, balance: int, expire_time: datetime):
+        self.device_serial = device_serial
+        self.amount = amount
+        self.balance = balance
+        self.expire_time = expire_time
 
     def to_dict(self) -> dict:
         """转换为字典"""
@@ -79,6 +85,8 @@ class BalanceManager:
         self.config_manager = get_config_manager()
         self.logger = get_logger()
 
+        self.device_balances: Dict[str, List[BalanceInfo]] = {}
+
         # 加载代币使用记录
         self.records: List[BalanceRecord] = []
         self._load_records()
@@ -102,7 +110,12 @@ class BalanceManager:
         except Exception as e:
             self.logger.error(f"保存代币使用记录失败: {e}")
 
-    def add_coins(self, device_serial: str, amount: int) -> List[BalanceInfo]:
+    def init_balance(self, device_serial: str):
+        """初始化余额信息"""
+        if device_serial not in self.device_balances:
+            self.device_balances[device_serial] = []
+
+    def add_balance(self, device_serial: str, amount: int, expire_time: datetime) -> List[BalanceInfo]:
         """为设备添加代币（签到获得）"""
         try:
             # 计算过期时间（7天后）
@@ -110,47 +123,32 @@ class BalanceManager:
             expire_time_str = expire_time.strftime("%Y-%m-%d %H:%M:%S")
 
             # 创建新的代币对象
-            coin = BalanceInfo(amount=amount, expire_time=expire_time_str, balance=amount)
+            balance_info = BalanceInfo(device_serial=device_serial, amount=amount, balance=amount, expire_time=expire_time)
 
             # 获取设备现有的代币
-            device_coins = self.get_device_coins(device_serial)
-            device_coins.append(coin)
+            device_balance_list = self.get_device_balance_list(device_serial)
+            device_balance_list.append(balance_info)
 
             # 保存更新后的代币信息
-            self._save_device_coins(device_serial, device_coins)
+            # self._save_device_coins(device_serial, device_coins)
 
             self.logger.info(f"为设备 {device_serial} 添加 {amount} 个代币，过期时间: {expire_time_str}")
-            return device_coins
+            return device_balance_list
         except Exception as e:
             self.logger.error(f"为设备 {device_serial} 添加代币失败: {e}")
             return []
 
-    def get_device_coins(self, device_serial: str) -> List[BalanceInfo]:
+    def refresh_balance(self, device_serial: str, balance_info_list: List[BalanceInfo]):
+        """刷新设备的代币信息"""
+        device_balance_list = self.get_device_balance_list(device_serial)
+        # 将device_balance_list替换为device_balance_list，但不改变其引用
+        device_balance_list[:] = []
+        device_balance_list.extend(balance_info_list)
+        return True
+
+    def get_device_balance_list(self, device_serial: str) -> List[BalanceInfo]:
         """获取设备的代币信息"""
-        try:
-            # 从配置中获取设备代币信息
-            all_coins = self.config_manager.get_config("balances", {})
-            device_coins_data = all_coins.get(device_serial, [])
-            device_coins = [BalanceInfo.from_dict(coin_data) for coin_data in device_coins_data]
-
-            # 过滤掉已过期的代币
-            now = datetime.now()
-            valid_coins = []
-            for coin in device_coins:
-                expire_time = datetime.strptime(coin.expire_time, "%Y-%m-%d %H:%M:%S")
-                if expire_time > now:
-                    valid_coins.append(coin)
-                else:
-                    self.logger.info(f"代币已过期，数量: {coin.amount}，过期时间: {coin.expire_time}")
-
-            # 更新配置（移除过期代币）
-            if len(valid_coins) != len(device_coins):
-                self._save_device_coins(device_serial, valid_coins)
-
-            return valid_coins
-        except Exception as e:
-            self.logger.error(f"获取设备 {device_serial} 的代币信息失败: {e}")
-            return []
+        return self.device_balances.get(device_serial)
 
     def _save_device_coins(self, device_serial: str, coins: List[BalanceInfo]):
         """保存设备的代币信息"""
@@ -165,7 +163,7 @@ class BalanceManager:
     def get_total_balance(self, device_serial: str) -> int:
         """获取设备代币总余额"""
         try:
-            coins = self.get_device_coins(device_serial)
+            coins = self.get_device_balance_list(device_serial)
             total_balance = sum(coin.balance for coin in coins)
             return total_balance
         except Exception as e:
@@ -187,7 +185,7 @@ class BalanceManager:
     def get_nearest_expire_time(self, device_serial: str) -> Optional[str]:
         """获取设备最近的代币过期时间"""
         try:
-            coins = self.get_device_coins(device_serial)
+            coins = self.get_device_balance_list(device_serial)
             if not coins:
                 return None
 
@@ -204,7 +202,7 @@ class BalanceManager:
         """消耗代币购买章节"""
         try:
             # 获取设备代币
-            coins = self.get_device_coins(device_serial)
+            coins = self.get_device_balance_list(device_serial)
             if not coins:
                 self.logger.warning(f"设备 {device_serial} 没有可用代币")
                 return False

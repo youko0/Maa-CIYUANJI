@@ -31,12 +31,11 @@ class UserLogic:
 
     def sign_in(self, is_user_data_updated=False):
         """签到"""
-
         result_succeeded = self.tasker.post_task("existsAndClickUser").wait().succeeded
         if result_succeeded is False:
             self.logger.error(f"[签到]没有识别到用户页")
             return False
-        time.sleep(0.5)
+        time.sleep(0.6)
         # 进入签到任务页面
         result_succeeded = self.tasker.post_task("existsAndClickSignInEntrance").wait().succeeded
         if result_succeeded is False:
@@ -69,10 +68,11 @@ class UserLogic:
             if result and result.nodes and len(result.nodes) > 0:
                 coin_num_str = result.nodes[0].recognition.best_result.text
                 # 添加代币（模拟签到获得5个代币）
-                expire_time = (datetime.now() + timedelta(days=7)).strftime("%Y-%m-%d")
+                expire_time = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=7)
                 # self.config_manager.add_coin(self.device_serial, int(coin_num_str), expire_time)
                 print(f"{self.device_serial}设备签到成功，添加代币：{coin_num_str}，过期时间：{expire_time}")
                 # 更新设备信息及余额数据
+                self.maa_manager.add_balance(self.device_serial, int(coin_num_str), expire_time)
 
             else:
                 self.logger.error(f"{self.device_serial}设备没有识别到代币数量")
@@ -117,14 +117,17 @@ class UserLogic:
         time.sleep(0.5)
 
         # 识别代币明细
-        balance_info_list = self.swipe_and_ocr_coin_detail()
+        balance_info_list = self.swipe_and_ocr_coin_detail(self.device_serial)
         # 计算balance_info_list总余额是否等于total_coin_num
         balance = sum([item.balance for item in balance_info_list])
         if balance != total_coin_num:
             self.logger.warning(f"[刷新余额]代币明细和总余额不一致，刷新失败")
             return
+        self.logger.info(f"[刷新余额]代币明细识别完毕，开始更新设备信息")
+        # 更新设备信息及余额数据
+        self.maa_manager.refresh_balance(self.device_serial, total_coin_num, balance_info_list)
 
-    def swipe_and_ocr_coin_detail(self):
+    def swipe_and_ocr_coin_detail(self, device_serial: str):
         """滑动并识别代币明细"""
         self.logger.info(f"[刷新余额]开始识别代币明细")
         balance_info_list = []
@@ -132,7 +135,7 @@ class UserLogic:
             find_goods_list_result = self.tasker.post_task("ocrCoinDetails").wait().get()
             if find_goods_list_result and len(find_goods_list_result.nodes) > 0:
                 ocr_result_list = find_goods_list_result.nodes[0].recognition.filterd_results
-                balance_infos = self.parse_ocr_to_balance_info(ocr_result_list)
+                balance_infos = self.parse_ocr_to_balance_info(ocr_result_list, device_serial)
                 # 求balance_infos较balance_info_list的差集
                 balance_infos = [item for item in balance_infos if item not in balance_info_list]
                 if balance_infos:
@@ -145,7 +148,7 @@ class UserLogic:
 
         return balance_info_list
 
-    def parse_ocr_to_balance_info(self, ocr_results: List[OCRResult]) -> List[BalanceInfo]:
+    def parse_ocr_to_balance_info(self, ocr_results: List[OCRResult], device_serial: str) -> List[BalanceInfo]:
         """
         解析OCR结果列表为BalanceInfo对象列表
 
@@ -211,6 +214,7 @@ class UserLogic:
                 if amount > 0 or balance > 0 or expire_time:
                     # 创建BalanceInfo对象
                     balance_info = BalanceInfo(
+                        device_serial=device_serial,
                         amount=amount,
                         balance=balance,
                         expire_time=expire_time

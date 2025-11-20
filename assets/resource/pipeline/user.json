@@ -18,7 +18,7 @@
     "recognition": "OCR",
     "roi": [554, 19, 165, 156],
     "expected": "^规则说明$",
-    "timeout": 12000,
+    "timeout": 15000,
     "describe": "判断是否存在规则说明，存在则说明已经进入指定页面"
   },
   "existsSignInSuccessTip": {
