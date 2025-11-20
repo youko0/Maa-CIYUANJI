@@ -39,7 +39,8 @@ class DeviceTaskThreadManager:
             # 检查是否已有线程在运行
             if device_serial in self.device_threads:
                 existing_thread = self.device_threads[device_serial]
-                if existing_thread.is_running():
+                # 更严格的检查：不仅检查运行状态，还要检查stopped_event状态
+                if existing_thread.is_running() or not existing_thread.stopped_event.is_set():
                     self.logger.warning(f"设备 {device_serial} 的任务线程已在运行")
                     return existing_thread
                 else:
@@ -48,6 +49,12 @@ class DeviceTaskThreadManager:
 
             # 创建新的任务线程
             runner = DeviceTaskRunner(device_serial, task_name)
+            
+            # 重置stopped_event，确保状态正确
+            runner.stopped_event.clear()
+            
+            # 设置线程结束回调，确保自动清理
+            runner.set_on_finished_callback(self._cleanup_thread_on_finish)
 
             thread = threading.Thread(target=runner.run)
             thread.daemon = True  # 设置为守护线程（主程序退出时会自动终止守护线程）
@@ -61,6 +68,11 @@ class DeviceTaskThreadManager:
         except Exception as e:
             self.logger.error(f"启动设备 {device_serial} 任务线程失败: {e}", True)
             return None
+            
+    def _cleanup_thread_on_finish(self, device_serial: str):
+        """线程结束时的清理回调"""
+        self.logger.debug(f"线程结束回调触发，清理设备 {device_serial}")
+        self._cleanup_thread(device_serial)
 
     def stop_device_task(self, device_serial: str, stop_type) -> bool:
         """
@@ -120,8 +132,7 @@ class DeviceTaskThreadManager:
     def _cleanup_thread(self, device_serial: str):
         """清理线程"""
         if device_serial in self.device_threads:
-            thread = self.device_threads[device_serial]
-            thread.deleteLater()
+            # 注意：DeviceTaskRunner 不是Qt对象，所以不需要调用deleteLater()
             del self.device_threads[device_serial]
 
 

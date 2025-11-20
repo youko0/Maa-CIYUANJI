@@ -42,15 +42,25 @@ class DeviceTaskRunner(QObject):
 
         self.stop_event = threading.Event()  # 停止任务事件。线程事件对象，用于线程间通信
         self.stopped_event = threading.Event()  # 线程已完全停止事件。线程事件对象，用于线程间通信
+        self.stopped_event.set()  # 初始状态为已停止
 
         # 页面管理器
         self.page_manager = PageManager(self.device_serial, self._on_execution_stopped)
         self.user_logic = UserLogic(self.device_serial, self.user_data_updated)
+        
+        # 线程结束回调
+        self._on_finished_callback = None
+
+    def set_on_finished_callback(self, callback):
+        """设置线程结束时的回调函数"""
+        self._on_finished_callback = callback
 
     def run(self):
         """
         线程主执行函数
         """
+        # 标记线程开始运行
+        self.stopped_event.clear()
         try:
             self.logger.info(f"设备 {self.device_serial} 任务线程启动")
 
@@ -80,6 +90,9 @@ class DeviceTaskRunner(QObject):
         finally:
             self.stopped_event.set()  # 标记已停止
             self.logger.info(f"设备 {self.device_serial} 任务线程结束")
+            # 调用结束回调
+            if self._on_finished_callback:
+                self._on_finished_callback(self.device_serial)
 
     def game_main(self):
         """        游戏主逻辑（按照固定顺序检查并执行各项任务）        """
@@ -129,10 +142,10 @@ class DeviceTaskRunner(QObject):
         """停止线程"""
         self._running = False
         self.stop_event.set()
-
+        
     def is_running(self) -> bool:
         """检查线程是否正在运行"""
-        return self._running
+        return self._running and not self.stopped_event.is_set()
 
     def wait_stopped(self, timeout=None):
         """等待 runner 完全停止"""
