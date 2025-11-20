@@ -177,6 +177,29 @@ class HomeTab(QWidget):
         except Exception as e:
             self.logger.error(f"切换设备连接状态失败: {e}")
 
+    def start_device_task(self, device_serial, task_name):
+        """
+        启动线程
+        :param device_serial:
+        :param task_name:
+        :return:
+        """
+        task_thread = self.task_thread_manager.start_device_task(
+            device_serial=device_serial,
+            task_name=task_name
+        )
+        if task_thread:
+            # 连接任务线程的信号
+            # task_thread.user_data_updated.connect(self._on_user_data_updated)
+            # task_thread.execution_stopped.connect(self._stop_device_tasks)
+            #
+            # self.is_task_running = True
+            # self._update_task_button_state()
+            # self.task_status_changed.emit(self.device_serial, True)
+            self.logger.info("任务启动成功")
+        else:
+            self.logger.info("任务启动失败")
+
     def one_click_check_in(self):
         """一键签到"""
         device_info_list = self.maa_manager.get_connected_device_info_list()
@@ -185,43 +208,13 @@ class HomeTab(QWidget):
             if device_info.last_sign_in_time is None or TimeUtils.is_today(device_info.last_sign_in_time) is False:
                 tasker = self.maa_manager.get_device_tasker(device_info.device_serial)
                 # 执行签到逻辑
-                task_thread = self.task_thread_manager.start_device_task(
-                    device_serial=device_info.device_serial,
-                    task_name="signIn"
-                )
-                if task_thread:
-                    # 连接任务线程的信号
-                    # task_thread.user_data_updated.connect(self._on_user_data_updated)
-                    # task_thread.execution_stopped.connect(self._stop_device_tasks)
-                    #
-                    # self.is_task_running = True
-                    # self._update_task_button_state()
-                    # self.task_status_changed.emit(self.device_serial, True)
-                    self.logger.info("任务启动成功")
-                else:
-                    self.logger.info("任务启动失败")
+                self.start_device_task(device_info.device_serial, "signIn")
 
     def one_click_refresh_balance(self):
         """一键刷新余额"""
         device_serial_list = self.maa_manager.get_connected_device_serial_list()
         for device_serial in device_serial_list:
-
-            # 执行签到逻辑
-            task_thread = self.task_thread_manager.start_device_task(
-                device_serial=device_serial,
-                task_name="refreshBalance"
-            )
-            if task_thread:
-                # 连接任务线程的信号
-                # task_thread.user_data_updated.connect(self._on_user_data_updated)
-                # task_thread.execution_stopped.connect(self._stop_device_tasks)
-                #
-                # self.is_task_running = True
-                # self._update_task_button_state()
-                # self.task_status_changed.emit(self.device_serial, True)
-                self.logger.info("任务启动成功")
-            else:
-                self.logger.info("任务启动失败")
+            self.start_device_task(device_serial, "refreshBalance")
 
     def clear_logs(self):
         """清空日志"""
