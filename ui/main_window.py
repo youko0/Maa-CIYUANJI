@@ -17,9 +17,9 @@ from PySide6.QtCore import Qt, QTimer, QRect, QStandardPaths
 from PySide6.QtGui import QAction, QScreen
 from maa.tasker import Tasker
 
-from core.balance_manager import BalanceManager
-from core.maa_manager import MaaFrameworkManager
-from core.novel_manager import NovelManager
+from core.balance_manager import BalanceManager, get_balance_manager
+from core.maa_manager import MaaFrameworkManager, get_maa_manager
+from core.novel_manager import NovelManager, get_novel_manager
 from ui.home_tab import HomeTab
 from ui.novel_tab import NovelTab
 from ui.balance_tab import BalanceTab
@@ -31,10 +31,10 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.novel_manager = NovelManager()
-        self.balance_manager = BalanceManager()
+        self.novel_manager = get_novel_manager()
+        self.balance_manager = get_balance_manager()
         # 初始化MaaFramework组件
-        self.maa_manager = MaaFrameworkManager()
+        self.maa_manager = get_maa_manager()
         self.logger = get_logger()
 
         # 定时器用于定期刷新界面

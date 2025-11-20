@@ -23,14 +23,14 @@ class DeviceTaskThreadManager:
         self.logger = logging.getLogger(__name__)
         self.device_threads: dict[str, DeviceTaskRunner] = {}
 
-    def start_device_task(self, device_serial: str, tasker: Tasker, task_name: str) -> Optional[DeviceTaskRunner]:
+    def start_device_task(self, device_serial: str, task_name: str) -> Optional[DeviceTaskRunner]:
         """
         启动设备任务线程
         
         Args:
             device_serial: 设备序列号
             tasker: MaaFramework tasker实例
-            task_name: 任务名称：(signIn、initialized、ocrBalance、ocrNovel)
+            task_name: 任务名称：(signIn、refreshBalance、initialized、ocrBalance、ocrNovel)
             
         Returns:
             创建的任务线程实例（用于连接信号），失败时返回None
@@ -47,7 +47,7 @@ class DeviceTaskThreadManager:
                     self._cleanup_thread(device_serial)
 
             # 创建新的任务线程
-            runner = DeviceTaskRunner(device_serial, tasker, task_name)
+            runner = DeviceTaskRunner(device_serial, task_name)
 
             thread = threading.Thread(target=runner.run)
             thread.daemon = True  # 设置为守护线程（主程序退出时会自动终止守护线程）
@@ -125,9 +125,9 @@ class DeviceTaskThreadManager:
             del self.device_threads[device_serial]
 
 
-
 # 全局设备任务管理器实例
 _DEVICE_TASK_THREAD_MANAGER = None
+
 
 def get_device_task_thread_manager():
     """获取全局设备任务管理器实例"""

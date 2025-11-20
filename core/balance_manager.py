@@ -20,7 +20,7 @@ class BalanceInfo:
     """代币信息类"""
     amount: int  # 代币数量
     balance: int  # 余额
-    expire_time: str  # 过期时间，格式: yyyy-MM-dd HH:mm:ss
+    expire_time: datetime  # 过期时间，格式: yyyy-MM-dd HH:mm:ss
 
     def to_dict(self) -> dict:
         """转换为字典"""

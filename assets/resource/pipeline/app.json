@@ -38,5 +38,12 @@
     "action": "click",
     "timeout": 1000,
     "describe": "判断是否存在同意并继续按钮，存在则点击"
+  },
+  "swipe": {
+    "action": "Swipe",
+    "begin": [324, 1195, 0, 0],
+    "end": [317, 275, 0, 0],
+    "duration": 1800,
+    "describe": "滑动屏幕（公共方法，通过pipeline_override覆盖参数）"
   }
 }

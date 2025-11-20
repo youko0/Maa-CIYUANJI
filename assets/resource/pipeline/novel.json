@@ -3,7 +3,6 @@
     "recognition": "OCR",
     "roi": [14, 1178, 704, 101],
     "expected": "^书架$",
-    "action": "click",
     "timeout": 1200,
     "describe": "判断是否存在书架tabbar，存在则点击"
   },

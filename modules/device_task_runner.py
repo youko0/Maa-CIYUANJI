@@ -32,10 +32,9 @@ class DeviceTaskRunner(QObject):
     user_data_updated = Signal(str, object)  # device_serial, user_data
     execution_stopped = Signal(str)  # device_serial
 
-    def __init__(self, device_serial: str, tasker: Tasker, task_name=""):
+    def __init__(self, device_serial: str, task_name=""):
         super().__init__()
         self.device_serial = device_serial
-        self.tasker = tasker
         self.task_name = task_name  # 任务名称：(signIn、initialized、ocrBalance、ocrNovel)
         self.logger = GameLoggerFactory.get_logger(device_serial)
         self._running = True
@@ -45,8 +44,8 @@ class DeviceTaskRunner(QObject):
         self.stopped_event = threading.Event()  # 线程已完全停止事件。线程事件对象，用于线程间通信
 
         # 页面管理器
-        self.page_manager = PageManager(self.device_serial, self.tasker, self._on_execution_stopped)
-        self.user_logic = UserLogic(self.device_serial, self.tasker, self.page_manager, self.user_data_updated)
+        self.page_manager = PageManager(self.device_serial, self._on_execution_stopped)
+        self.user_logic = UserLogic(self.device_serial, self.user_data_updated)
 
     def run(self):
         """
@@ -62,7 +61,10 @@ class DeviceTaskRunner(QObject):
                         self.logger.info(f"[系统]开始执行签到任务")
                         self.page_manager.check_is_home_page()
                         self.user_logic.sign_in()
-
+                    elif self.task_name == "refreshBalance":
+                        self.logger.info(f"[系统]开始执行刷新余额任务")
+                        self.page_manager.check_is_home_page()
+                        self.user_logic.refresh_balance()
                 if self.stop_event.is_set():
                     return
 

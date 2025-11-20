@@ -10,6 +10,7 @@ import time
 from datetime import timedelta
 from enum import Enum
 
+from core.maa_manager import get_maa_manager
 from modules.game_logger import GameLoggerFactory
 
 
@@ -28,14 +29,15 @@ class PageManager:
     仅负责页面状态检查，不参与任务执行
     """
 
-    def __init__(self, device_serial, tasker, error_callback=None):
+    def __init__(self, device_serial, error_callback=None):
         """
         :param device_serial:
         :param tasker:
         :param error_callback: 发生错误的回调，这里用来通知被调用方退出方法循环
         """
         self.device_serial = device_serial
-        self.tasker = tasker
+        self.maa_manager = get_maa_manager()
+        self.tasker = self.maa_manager.get_device_tasker(device_serial)
         self.error_callback = error_callback
         self.logger = GameLoggerFactory.get_logger(device_serial)
 

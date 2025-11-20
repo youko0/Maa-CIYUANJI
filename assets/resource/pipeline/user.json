@@ -47,7 +47,7 @@
   },
   "existsAndClickCoinEntrance": {
     "recognition": "OCR",
-    "expected": "代币",
+    "expected": "^代币$",
     "action": "click",
     "timeout": 1200,
     "describe": "判断是否存在代币账号页面入口，存在则点击"
@@ -59,12 +59,24 @@
     "timeout": 1000,
     "describe": "识别硬币总数量"
   },
-  "findAllCoinNum": {
+  "ocrCoinDetails": {
     "recognition": "OCR",
-    "expected": "^[0-9]*$",
-    "roi": [87, 152, 133, 1127],
-    "timeout": 1000,
+    "roi": [2, 133, 717, 1146],
+    "expected": "^.{1,25}$",
+    "order_by": "Vertical",
+    "timeout": 1500,
     "describe": "识别硬币明细数量"
+  },
+  "existsCoinDetailsExpired": {
+    "recognition": "ColorMatch",
+    "method": 4,
+    "roi": [2, 133, 717, 1146],
+    "upper" : [236,228,230],
+    "lower" : [236,228,230],
+    "timeout": 2000,
+    "count": 500,
+    "connected": true,
+    "describe": "判断本页是否存在已过期的明细"
   },
   "existsTeenModeTips": {
     "recognition": "OCR",

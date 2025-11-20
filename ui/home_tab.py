@@ -53,6 +53,9 @@ class HomeTab(QWidget):
         self.one_click_check_in_btn = QPushButton("一键签到")
         self.one_click_check_in_btn.clicked.connect(self.one_click_check_in)
         device_btn_layout.addWidget(self.one_click_check_in_btn)
+        self.one_click_refresh_balance_btn = QPushButton("一键刷新余额")
+        self.one_click_refresh_balance_btn.clicked.connect(self.one_click_refresh_balance)
+        device_btn_layout.addWidget(self.one_click_refresh_balance_btn)
 
         device_btn_layout.addStretch()
 
@@ -184,7 +187,6 @@ class HomeTab(QWidget):
                 # 执行签到逻辑
                 task_thread = self.task_thread_manager.start_device_task(
                     device_serial=device_info.device_serial,
-                    tasker=tasker,
                     task_name="signIn"
                 )
                 if task_thread:
@@ -198,6 +200,28 @@ class HomeTab(QWidget):
                     self.logger.info("任务启动成功")
                 else:
                     self.logger.info("任务启动失败")
+
+    def one_click_refresh_balance(self):
+        """一键刷新余额"""
+        device_serial_list = self.maa_manager.get_connected_device_serial_list()
+        for device_serial in device_serial_list:
+
+            # 执行签到逻辑
+            task_thread = self.task_thread_manager.start_device_task(
+                device_serial=device_serial,
+                task_name="refreshBalance"
+            )
+            if task_thread:
+                # 连接任务线程的信号
+                # task_thread.user_data_updated.connect(self._on_user_data_updated)
+                # task_thread.execution_stopped.connect(self._stop_device_tasks)
+                #
+                # self.is_task_running = True
+                # self._update_task_button_state()
+                # self.task_status_changed.emit(self.device_serial, True)
+                self.logger.info("任务启动成功")
+            else:
+                self.logger.info("任务启动失败")
 
     def clear_logs(self):
         """清空日志"""

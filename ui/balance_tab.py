@@ -49,7 +49,7 @@ class BalanceTab(QWidget):
         self.device_coin_table = QTableWidget()
         self.device_coin_table.setColumnCount(3)
         self.device_coin_table.setHorizontalHeaderLabels([
-            "设备地址", "余额", "最近过期时间"
+            "设备地址", "余额", "最早过期时间"
         ])
         self.device_coin_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         device_coin_layout.addWidget(self.device_coin_table)
