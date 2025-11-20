@@ -31,10 +31,6 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.novel_manager = get_novel_manager()
-        self.balance_manager = get_balance_manager()
-        # 初始化MaaFramework组件
-        self.maa_manager = get_maa_manager()
         self.logger = get_logger()
 
         # 定时器用于定期刷新界面
@@ -123,6 +119,19 @@ class MainWindow(QMainWindow):
         self.home_tab.refresh_device_list()
         self.novel_tab.refresh_novel_list()
         self.balance_tab.refresh_balance_info()
+
+    def closeEvent(self, event):
+        """窗口关闭事件"""
+        # 清理主页标签页的资源
+        if self.home_tab:
+            self.home_tab.cleanup()
+        
+        # 停止定时器
+        if self.refresh_timer:
+            self.refresh_timer.stop()
+            
+        # 调用父类的关闭事件
+        super().closeEvent(event)
 
 
 class AddNovelDialog(QDialog):

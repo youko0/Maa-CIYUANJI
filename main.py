@@ -11,9 +11,6 @@ from pathlib import Path
 
 from PySide6.QtWidgets import QApplication
 
-from core.balance_manager import get_balance_manager
-from core.maa_manager import get_maa_manager
-from core.novel_manager import get_novel_manager
 from ui.main_window import MainWindow
 from utils.logger import get_logger
 from core.config_manager import get_config_manager
@@ -30,24 +27,21 @@ def init_directories():
 def load_managers():
     """加载manager"""
     get_config_manager()
-    get_maa_manager()
-    get_novel_manager()
-    get_balance_manager()
 
 def main():
     # 初始化目录
     init_directories()
 
-    # 初始化日志记录器
-    get_logger()
-
-    # 加载manager
-    load_managers()
-
     # 创建Qt应用
     app = QApplication(sys.argv)
     app.setApplicationName("次元姬小说助手")
     app.setApplicationVersion("1.0.0")
+
+    # 初始化日志记录器
+    logger = get_logger()
+    
+    # 加载manager（这些操作会产生日志）
+    load_managers()
 
     # 创建主窗口
     window = MainWindow()

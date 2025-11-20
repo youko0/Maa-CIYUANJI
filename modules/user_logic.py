@@ -78,7 +78,7 @@ class UserLogic:
                 self.logger.error(f"{self.device_serial}设备没有识别到代币数量")
         else:
             # 签到失败
-            self.logger.error(f"[签到]设备已签到")
+            self.logger.warning(f"[签到]设备已签到")
 
         # 调用返回按钮
         self.tasker.post_task("androidBack").wait()

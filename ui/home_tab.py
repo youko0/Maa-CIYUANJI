@@ -6,15 +6,18 @@
 包含设备管理和日志显示功能
 """
 
+import logging
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QTableWidget, QTableWidgetItem,
     QTextEdit, QPushButton, QHeaderView
 )
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QTextCursor
 
 from core.config_manager import get_config_manager
 from core.maa_manager import get_maa_manager
 from modules.device_task_thread_manager import get_device_task_thread_manager
+from modules.game_logger import GameLoggerFactory
 from ui.device_dialog import DeviceConnectionDialog
 from utils.logger import get_logger
 from utils.time_utils import TimeUtils
@@ -23,16 +26,27 @@ from utils.time_utils import TimeUtils
 class HomeTab(QWidget):
     """主页标签页"""
 
+    log_message_event = Signal(str)  # 日志消息
+
     def __init__(self):
         super().__init__()
         self.maa_manager = get_maa_manager()
         self.config_manager = get_config_manager()
-        self.logger = get_logger()
 
+        # 初始化UI
         self.init_ui()
+
+        # 获取带Qt信号注入的日志记录器
+        self.logger = get_logger(self.log_message_event)
 
         # 任务线程管理器
         self.task_thread_manager = get_device_task_thread_manager()
+
+        # 连接所有设备日志到UI
+        self._connect_device_logs_to_ui()
+
+        # 添加一些测试日志
+        self.logger.info("主页标签页初始化完成")
 
     def init_ui(self):
         """初始化UI"""
@@ -77,6 +91,7 @@ class HomeTab(QWidget):
 
         self.log_text = QTextEdit()
         self.log_text.setReadOnly(True)
+        self.log_message_event.connect(self._add_log_message)
         log_layout.addWidget(self.log_text)
 
         # 日志操作按钮
@@ -93,6 +108,17 @@ class HomeTab(QWidget):
         layout.addWidget(device_group)
         layout.addWidget(log_group)
 
+    def _connect_device_logs_to_ui(self):
+        """连接所有设备日志到UI显示"""
+        # 连接已存在的设备日志记录器到UI
+        GameLoggerFactory.connect_all_loggers_to_ui(self._add_log_message)
+
+    def _add_log_message(self, message: str):
+        """添加日志消息到UI"""
+        self.log_text.append(message)
+        # 自动滚动到底部
+        self.log_text.moveCursor(QTextCursor.End)
+
     def _show_connect_device_dialog(self):
         """显示连接设备对话框"""
         # 创建连接设备对话框
@@ -105,11 +131,13 @@ class HomeTab(QWidget):
 
     def one_click_connect_device(self):
         """一键连接设备"""
+        self.logger.info("开始一键连接设备，正在扫描设备...")
         devices = self.maa_manager.find_devices()
         if len(devices) == 0:
             self.logger.warning("未找到可用设备")
             return
 
+        self.logger.info(f"找到 {len(devices)} 个设备，开始连接...")
         for device in devices:
             if self.maa_manager.is_device_connected(device.address):
                 self.logger.warning(f"设备 {device.name} ({device.address}) 已连接")
@@ -222,5 +250,10 @@ class HomeTab(QWidget):
 
     def refresh_logs(self):
         """刷新日志"""
-        # TODO: 实现日志刷新逻辑
+        # 清空日志显示
+        self.log_text.clear()
+
+    def cleanup(self):
+        """清理资源"""
+        # 不需要特殊清理，Qt信号处理器会自动管理
         pass

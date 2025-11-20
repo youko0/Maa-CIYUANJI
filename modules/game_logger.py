@@ -4,7 +4,6 @@
 提供专门用于游戏逻辑的日志记录功能，支持将日志保存到指定设备序列号的文件夹中
 """
 
-import os
 import logging
 import logging.handlers
 from datetime import datetime
@@ -13,9 +12,6 @@ from PySide6.QtCore import QObject, Signal
 
 from utils.logger import get_logger
 import traceback
-
-# 获取日志记录器实例
-app_logger = get_logger()
 
 
 class GameLogger(QObject):
@@ -42,7 +38,7 @@ class GameLogger(QObject):
         safe_device_serial = self.serial_number.replace(":", "_")
 
         # 创建以序列号命名的日志目录
-        log_dir = Path('log') / safe_device_serial
+        log_dir = Path('logs') / safe_device_serial
         log_dir.mkdir(parents=True, exist_ok=True)
 
         # 配置日志格式
@@ -54,14 +50,19 @@ class GameLogger(QObject):
             game_logic_log_filename,
             when='midnight',
             interval=1,
-            backupCount=7,
+            backupCount=30,  # 保留30天的日志
             encoding='utf-8'
         )
         self.file_handler.setFormatter(formatter)
 
         # 创建日志记录器
-        self.logger = logging.getLogger(f"GameLogic_{self.serial_number}")
+        self.logger = logging.getLogger(f"MaaCIYUANJI.Device.{self.serial_number}")
         self.logger.setLevel(logging.DEBUG)
+        
+        # 清除现有的处理器（避免重复添加）
+        self.logger.handlers.clear()
+
+        # 添加文件处理器
         self.logger.addHandler(self.file_handler)
 
         # 添加控制台处理器
@@ -128,6 +129,7 @@ class GameLogger(QObject):
         self.log_message.emit(formatted_message)
         self.logger.error(message)
         if show_traceback:
+            app_logger = get_logger()
             app_logger.error(f'详细错误信息： {traceback.format_exc()}')
 
     def critical(self, message):
@@ -151,13 +153,12 @@ class GameLoggerFactory:
     _loggers = {}
 
     @classmethod
-    def get_logger(cls, serial_number, log_message=None):
+    def get_logger(cls, serial_number):
         """
         获取GameLogger实例
         
         Args:
             serial_number (str): 设备序列号，必填项
-            log_message (Signal): 连接日志信号到传入的日志处理函数
             
         Returns:
             GameLogger: GameLogger实例
@@ -166,8 +167,6 @@ class GameLoggerFactory:
             raise ValueError("参数设备序列号异常为空")
         if serial_number not in cls._loggers:
             logger = GameLogger(serial_number)
-            if log_message:
-                logger.log_message.connect(log_message)
             cls._loggers[serial_number] = logger
         return cls._loggers[serial_number]
 
@@ -185,3 +184,17 @@ class GameLoggerFactory:
             logger_instance.file_handler.close()
             logger_instance.logger.removeHandler(logger_instance.file_handler)
             del cls._loggers[serial_number]
+
+    @classmethod
+    def connect_all_loggers_to_ui(cls, ui_callback):
+        """
+        连接所有已创建的logger到UI回调函数
+        
+        Args:
+            ui_callback: UI回调函数，用于接收日志消息
+        """
+        for logger in cls._loggers.values():
+            # 检查是否已经连接过，避免重复连接
+            if not hasattr(logger, '_ui_connected'):
+                logger.log_message.connect(ui_callback)
+                logger._ui_connected = True
