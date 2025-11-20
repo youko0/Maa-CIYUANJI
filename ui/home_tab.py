@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QTableWidget, QTableWidgetItem,
     QTextEdit, QPushButton, QHeaderView
 )
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, Signal, QThread
 from PySide6.QtGui import QTextCursor
 
 from core.config_manager import get_config_manager
@@ -130,20 +130,28 @@ class HomeTab(QWidget):
             pass
 
     def one_click_connect_device(self):
-        """一键连接设备"""
-        self.logger.info("开始一键连接设备，正在扫描设备...")
-        devices = self.maa_manager.find_devices()
-        if len(devices) == 0:
-            self.logger.warning("未找到可用设备")
-            return
+        """一键连接设备 - 异步调用"""
+        self.logger.info("开始一键连接设备...")
 
-        self.logger.info(f"找到 {len(devices)} 个设备，开始连接...")
-        for device in devices:
-            if self.maa_manager.is_device_connected(device.address):
-                self.logger.warning(f"设备 {device.name} ({device.address}) 已连接")
-                continue
-            self.maa_manager.connect_device(device)
-            self.logger.info(f"设备 {device.name} ({device.address}) 连接成功")
+        # 禁用按钮防止重复点击
+        self.one_click_connect_device_btn.setEnabled(False)
+        self.one_click_connect_device_btn.setText("连接中...")
+
+        # 在新线程中执行连接操作
+        self.connection_thread = DeviceConnectionThread(self.maa_manager, self.logger)
+        self.connection_thread.connection_finished.connect(self._on_connection_finished)
+        self.connection_thread.start()
+
+    def _on_connection_finished(self, success: bool):
+        """连接完成回调"""
+        # 恢复按钮状态
+        self.one_click_connect_device_btn.setEnabled(True)
+        self.one_click_connect_device_btn.setText("一键连接设备")
+
+        if success:
+            self.logger.info("一键连接设备完成")
+        else:
+            self.logger.warning("一键连接设备完成，但没有成功连接任何设备")
 
         # 刷新设备列表显示
         self.refresh_device_list()
@@ -257,3 +265,21 @@ class HomeTab(QWidget):
         """清理资源"""
         # 不需要特殊清理，Qt信号处理器会自动管理
         pass
+
+class DeviceConnectionThread(QThread):
+    """设备连接线程"""
+    connection_finished = Signal(bool)  # 连接完成信号
+
+    def __init__(self, maa_manager, logger):
+        super().__init__()
+        self.maa_manager = maa_manager
+        self.logger = logger
+
+    def run(self):
+        """执行连接操作"""
+        try:
+            success = self.maa_manager.one_click_connect_device(self.logger)
+            self.connection_finished.emit(success)
+        except Exception as e:
+            self.logger.error(f"一键连接设备时发生错误: {e}")
+            self.connection_finished.emit(False)

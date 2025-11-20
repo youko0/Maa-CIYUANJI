@@ -242,6 +242,45 @@ class MaaFrameworkManager:
         """
         return list(self.device_infos.values())
 
+    def one_click_connect_device(self, logger=None):
+        """
+        一键连接设备
+        
+        Args:
+            logger: 日志记录器，用于输出连接过程中的信息
+            
+        Returns:
+            bool: 连接是否成功
+        """
+        if logger:
+            logger.info("开始一键连接设备，正在扫描设备...")
+        devices = self.find_devices()
+        if len(devices) == 0:
+            if logger:
+                logger.warning("未找到可用设备")
+            return False
+
+        if logger:
+            logger.info(f"找到 {len(devices)} 个设备，开始连接...")
+        success_count = 0
+        for device in devices:
+            if self.is_device_connected(device.address):
+                if logger:
+                    logger.warning(f"设备 {device.name} ({device.address}) 已连接")
+                continue
+            try:
+                self.connect_device(device)
+                if logger:
+                    logger.info(f"设备 {device.name} ({device.address}) 连接成功")
+                success_count += 1
+            except Exception as e:
+                if logger:
+                    logger.error(f"设备 {device.name} ({device.address}) 连接失败: {e}")
+
+        if logger:
+            logger.info(f"一键连接完成，成功连接 {success_count} 个设备")
+        return success_count > 0
+
 
 # 全局maa管理器实例
 _MAA_MANAGER = None
