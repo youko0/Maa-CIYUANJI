@@ -18,6 +18,7 @@ from core.config_manager import get_config_manager
 @dataclass
 class BalanceInfo:
     """代币信息类"""
+    device_serial: str  # 设备序列号
     amount: int  # 代币数量
     balance: int  # 余额
     expire_time: datetime  # 过期时间，格式: yyyy-MM-dd HH:mm:ss
@@ -30,6 +31,7 @@ class BalanceInfo:
     def from_dict(cls, data: dict) -> 'BalanceInfo':
         """从字典创建实例"""
         return cls(
+            device_serial=data["device_serial"],
             amount=data["amount"],
             expire_time=data["expire_time"],
             balance=data["balance"]
@@ -39,9 +41,9 @@ class BalanceInfo:
 class BalanceRecord:
     """代币使用记录"""
 
-    def __init__(self, device_address: str, novel_name: str, chapter_name: str,
+    def __init__(self, device_serial: str, novel_name: str, chapter_name: str,
                  coins_used: int, timestamp: str):
-        self.device_address = device_address
+        self.device_serial = device_serial
         self.novel_name = novel_name
         self.chapter_name = chapter_name
         self.coins_used = coins_used
@@ -50,7 +52,7 @@ class BalanceRecord:
     def to_dict(self) -> dict:
         """转换为字典"""
         return {
-            "device_address": self.device_address,
+            "device_serial": self.device_serial,
             "novel_name": self.novel_name,
             "chapter_name": self.chapter_name,
             "coins_used": self.coins_used,
@@ -61,7 +63,7 @@ class BalanceRecord:
     def from_dict(cls, data: dict) -> 'BalanceRecord':
         """从字典创建实例"""
         record = cls(
-            data["device_address"],
+            data["device_serial"],
             data["novel_name"],
             data["chapter_name"],
             data["coins_used"],
@@ -100,7 +102,7 @@ class BalanceManager:
         except Exception as e:
             self.logger.error(f"保存代币使用记录失败: {e}")
 
-    def add_coins(self, device_address: str, amount: int) -> List[BalanceInfo]:
+    def add_coins(self, device_serial: str, amount: int) -> List[BalanceInfo]:
         """为设备添加代币（签到获得）"""
         try:
             # 计算过期时间（7天后）
@@ -111,24 +113,24 @@ class BalanceManager:
             coin = BalanceInfo(amount=amount, expire_time=expire_time_str, balance=amount)
 
             # 获取设备现有的代币
-            device_coins = self.get_device_coins(device_address)
+            device_coins = self.get_device_coins(device_serial)
             device_coins.append(coin)
 
             # 保存更新后的代币信息
-            self._save_device_coins(device_address, device_coins)
+            self._save_device_coins(device_serial, device_coins)
 
-            self.logger.info(f"为设备 {device_address} 添加 {amount} 个代币，过期时间: {expire_time_str}")
+            self.logger.info(f"为设备 {device_serial} 添加 {amount} 个代币，过期时间: {expire_time_str}")
             return device_coins
         except Exception as e:
-            self.logger.error(f"为设备 {device_address} 添加代币失败: {e}")
+            self.logger.error(f"为设备 {device_serial} 添加代币失败: {e}")
             return []
 
-    def get_device_coins(self, device_address: str) -> List[BalanceInfo]:
+    def get_device_coins(self, device_serial: str) -> List[BalanceInfo]:
         """获取设备的代币信息"""
         try:
             # 从配置中获取设备代币信息
-            all_coins = self.config_manager.get_config("coins", {})
-            device_coins_data = all_coins.get(device_address, [])
+            all_coins = self.config_manager.get_config("balances", {})
+            device_coins_data = all_coins.get(device_serial, [])
             device_coins = [BalanceInfo.from_dict(coin_data) for coin_data in device_coins_data]
 
             # 过滤掉已过期的代币
@@ -143,49 +145,49 @@ class BalanceManager:
 
             # 更新配置（移除过期代币）
             if len(valid_coins) != len(device_coins):
-                self._save_device_coins(device_address, valid_coins)
+                self._save_device_coins(device_serial, valid_coins)
 
             return valid_coins
         except Exception as e:
-            self.logger.error(f"获取设备 {device_address} 的代币信息失败: {e}")
+            self.logger.error(f"获取设备 {device_serial} 的代币信息失败: {e}")
             return []
 
-    def _save_device_coins(self, device_address: str, coins: List[BalanceInfo]):
+    def _save_device_coins(self, device_serial: str, coins: List[BalanceInfo]):
         """保存设备的代币信息"""
         try:
-            all_coins = self.config_manager.get_config("coins", {})
-            all_coins[device_address] = [coin.to_dict() for coin in coins]
+            all_coins = self.config_manager.get_config("balances", {})
+            all_coins[device_serial] = [coin.to_dict() for coin in coins]
             self.config_manager.set_config("coins", all_coins)
             self.config_manager.save()
         except Exception as e:
-            self.logger.error(f"保存设备 {device_address} 的代币信息失败: {e}")
+            self.logger.error(f"保存设备 {device_serial} 的代币信息失败: {e}")
 
-    def get_total_balance(self, device_address: str) -> int:
+    def get_total_balance(self, device_serial: str) -> int:
         """获取设备代币总余额"""
         try:
-            coins = self.get_device_coins(device_address)
+            coins = self.get_device_coins(device_serial)
             total_balance = sum(coin.balance for coin in coins)
             return total_balance
         except Exception as e:
-            self.logger.error(f"计算设备 {device_address} 代币总余额失败: {e}")
+            self.logger.error(f"计算设备 {device_serial} 代币总余额失败: {e}")
             return 0
 
     def get_total_balance_all_devices(self) -> int:
         """获取所有设备代币总余额"""
         try:
-            all_coins = self.config_manager.get_config("coins", {})
+            all_coins = self.config_manager.get_config("balances", {})
             total_balance = 0
-            for device_address in all_coins:
-                total_balance += self.get_total_balance(device_address)
+            for device_serial in all_coins:
+                total_balance += self.get_total_balance(device_serial)
             return total_balance
         except Exception as e:
             self.logger.error(f"计算所有设备代币总余额失败: {e}")
             return 0
 
-    def get_nearest_expire_time(self, device_address: str) -> Optional[str]:
+    def get_nearest_expire_time(self, device_serial: str) -> Optional[str]:
         """获取设备最近的代币过期时间"""
         try:
-            coins = self.get_device_coins(device_address)
+            coins = self.get_device_coins(device_serial)
             if not coins:
                 return None
 
@@ -194,17 +196,17 @@ class BalanceManager:
             nearest_expire = min(expire_times)
             return nearest_expire.strftime("%Y-%m-%d %H:%M:%S")
         except Exception as e:
-            self.logger.error(f"获取设备 {device_address} 最近代币过期时间失败: {e}")
+            self.logger.error(f"获取设备 {device_serial} 最近代币过期时间失败: {e}")
             return None
 
-    def consume_coins(self, device_address: str, novel_name: str, chapter_name: str,
+    def consume_coins(self, device_serial: str, novel_name: str, chapter_name: str,
                       amount: int) -> bool:
         """消耗代币购买章节"""
         try:
             # 获取设备代币
-            coins = self.get_device_coins(device_address)
+            coins = self.get_device_coins(device_serial)
             if not coins:
-                self.logger.warning(f"设备 {device_address} 没有可用代币")
+                self.logger.warning(f"设备 {device_serial} 没有可用代币")
                 return False
 
             # 按过期时间排序（优先使用即将过期的代币）
@@ -213,7 +215,7 @@ class BalanceManager:
             # 计算总余额是否足够
             total_balance = sum(coin.balance for coin in coins)
             if total_balance < amount:
-                self.logger.warning(f"设备 {device_address} 代币余额不足，需要: {amount}，现有: {total_balance}")
+                self.logger.warning(f"设备 {device_serial} 代币余额不足，需要: {amount}，现有: {total_balance}")
                 return False
 
             # 消耗代币
@@ -233,11 +235,11 @@ class BalanceManager:
                         coin.balance = 0
 
             # 保存更新后的代币信息
-            self._save_device_coins(device_address, coins)
+            self._save_device_coins(device_serial, coins)
 
             # 记录使用情况
             record = BalanceRecord(
-                device_address=device_address,
+                device_serial=device_serial,
                 novel_name=novel_name,
                 chapter_name=chapter_name,
                 coins_used=amount,
@@ -246,18 +248,18 @@ class BalanceManager:
             self.records.append(record)
             self.save_records()
 
-            self.logger.info(f"设备 {device_address} 成功消耗 {amount} 个代币购买小说 {novel_name} 章节 {chapter_name}")
+            self.logger.info(f"设备 {device_serial} 成功消耗 {amount} 个代币购买小说 {novel_name} 章节 {chapter_name}")
             return True
         except Exception as e:
-            self.logger.error(f"设备 {device_address} 消耗代币失败: {e}")
+            self.logger.error(f"设备 {device_serial} 消耗代币失败: {e}")
             return False
 
-    def get_records_by_device(self, device_address: str) -> List[BalanceRecord]:
+    def get_records_by_device(self, device_serial: str) -> List[BalanceRecord]:
         """获取指定设备的代币使用记录"""
         try:
-            return [record for record in self.records if record.device_address == device_address]
+            return [record for record in self.records if record.device_serial == device_serial]
         except Exception as e:
-            self.logger.error(f"获取设备 {device_address} 的代币使用记录失败: {e}")
+            self.logger.error(f"获取设备 {device_serial} 的代币使用记录失败: {e}")
             return []
 
     def get_all_records(self) -> List[BalanceRecord]:
@@ -267,6 +269,7 @@ class BalanceManager:
 
 # 全局余额管理器实例
 _BALANCE_MANAGER = None
+
 
 def get_balance_manager():
     """获取全局余额管理器实例"""
