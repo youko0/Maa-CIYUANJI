@@ -251,9 +251,10 @@ class HomeTab(QWidget):
             device_info = self.maa_manager.get_device_info(device_serial)
             # 判断今天是否已经进行签到
             if device_info.last_sign_in_time is None or TimeUtils.is_today(device_info.last_sign_in_time) is False:
-                tasker = self.maa_manager.get_device_tasker(device_info.device_serial)
                 # 执行签到逻辑
                 self.start_device_task(device_info.device_serial, "signIn")
+            else:
+                self.logger.info(f"设备 {device_serial} 今日已签到")
 
     def one_click_refresh_balance(self):
         """一键刷新余额"""

@@ -18,14 +18,23 @@ from core.config_manager import get_config_manager
 class NovelInfo:
     """小说信息类"""
 
-    def __init__(self, name: str, start_chapter: int = 1, end_chapter: int = 9999):
+    def __init__(self,
+                 name: str,
+                 start_chapter: int = 1,
+                 end_chapter: int = 9999,
+                 current_chapter=1,
+                 complete_chapter: List[int] = [],
+                 last_recognize_time=None,
+                 is_active=True,
+                 progress=0.0):
         self.name = name
         self.start_chapter = start_chapter
         self.end_chapter = end_chapter
-        self.current_chapter = start_chapter
-        self.last_recognize_time: Optional[str] = None
-        self.is_active = True  # 是否启用
-        self.progress = 0.0  # 识别进度百分比
+        self.current_chapter = current_chapter
+        self.complete_chapter: List[int] = complete_chapter  # 记录当前章节之后章节已经识别过的章节数
+        self.last_recognize_time: datetime = last_recognize_time  # 最后识别时间
+        self.is_active = is_active  # 是否启用
+        self.progress = progress  # 识别进度百分比
 
     def to_dict(self) -> dict:
         """转换为字典"""
@@ -34,6 +43,7 @@ class NovelInfo:
             "start_chapter": self.start_chapter,
             "end_chapter": self.end_chapter,
             "current_chapter": self.current_chapter,
+            "complete_chapter": self.complete_chapter,
             "last_recognize_time": self.last_recognize_time,
             "is_active": self.is_active,
             "progress": self.progress
@@ -45,42 +55,46 @@ class NovelInfo:
         novel = cls(
             data["name"],
             data.get("start_chapter", 1),
-            data.get("end_chapter", 9999)
+            data.get("end_chapter", -1),
+            data.get("current_chapter", 1),
+            data.get("complete_chapter", []),
+            data.get("last_recognize_time"),
+            data.get("is_active", True),
+            data.get("progress", 0.0)
         )
-        novel.current_chapter = data.get("current_chapter", novel.start_chapter)
-        novel.last_recognize_time = data.get("last_recognize_time")
-        novel.is_active = data.get("is_active", True)
-        novel.progress = data.get("progress", 0.0)
         return novel
 
 
 class ChapterInfo:
     """章节信息类"""
 
-    def __init__(self, name: str, content: str, device_address: str):
+    def __init__(self, serial_no, name: str, content: str, device_address: str, ocr_time=None):
+        self.serial_no = serial_no
         self.name = name
         self.content = content
         self.device_address = device_address
-        self.recognize_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.ocr_time = ocr_time
 
     def to_dict(self) -> dict:
         """转换为字典"""
         return {
+            "serial_no": self.serial_no,
             "name": self.name,
             "content": self.content,
             "device_address": self.device_address,
-            "recognize_time": self.recognize_time
+            "ocr_time": self.ocr_time
         }
 
     @classmethod
     def from_dict(cls, data: dict) -> 'ChapterInfo':
         """从字典创建实例"""
         chapter = cls(
+            data["serial_no"],
             data["name"],
             data["content"],
-            data["device_address"]
+            data["device_address"],
+            data.get("ocr_time")
         )
-        chapter.recognize_time = data.get("recognize_time", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         return chapter
 
 
@@ -102,7 +116,7 @@ class NovelManager:
     def _load_novels(self):
         """从配置文件加载小说信息"""
         try:
-            novels_data = self.config_manager.get_config("novels", {})
+            novels_data = self.config_manager.get_stat("novels", {})
             for name, novel_data in novels_data.items():
                 self.novels[name] = NovelInfo.from_dict(novel_data)
             self.logger.info(f"加载了 {len(self.novels)} 本小说")
@@ -113,7 +127,7 @@ class NovelManager:
         """保存小说信息到配置文件"""
         try:
             novels_data = {name: novel.to_dict() for name, novel in self.novels.items()}
-            self.config_manager.set_config("novels", novels_data)
+            self.config_manager.set_stat("novels", novels_data)
             self.config_manager.save()
             self.logger.info("小说信息保存成功")
         except Exception as e:

@@ -51,7 +51,12 @@ class NovelTab(QWidget):
         self.novel_table.setHorizontalHeaderLabels([
             "名称", "当前识别进度", "上次识别时间", "状态", "操作"
         ])
-        self.novel_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        header = self.novel_table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
         self.novel_table.setSelectionBehavior(QTableWidget.SelectRows)
 
         novel_layout.addLayout(novel_btn_layout)
@@ -105,9 +110,7 @@ class NovelTab(QWidget):
                 btn_layout.setContentsMargins(0, 0, 0, 0)
 
                 start_btn = QPushButton("开始识别")
-                start_btn.clicked.connect(
-                    lambda checked, name=novel.name: self.start_novel_recognize(name)
-                )
+                start_btn.clicked.connect(lambda checked, name=novel.name: self.start_novel_recognize(name))
 
                 toggle_btn = QPushButton("停用" if novel.is_active else "启用")
                 toggle_btn.clicked.connect(
@@ -132,7 +135,9 @@ class NovelTab(QWidget):
         """开始识别小说"""
         try:
             success = self.novel_manager.start_recognize(name)
-            # TODO: 启动实际的识别任务
+            # 获取当前小说进度，根据当前连接设备自动分配章节
+
+
         except Exception as e:
             self.logger.error(f"开始识别小说失败: {e}")
 
