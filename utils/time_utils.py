@@ -20,7 +20,7 @@ class TimeUtils:
         return datetime.now()
 
     @staticmethod
-    def format(dt: datetime, format_str: str = "%Y-%m-%d %H:%M:%S", empty_msg="") -> str:
+    def format(dt: datetime | None, format_str: str = "%Y-%m-%d %H:%M:%S", empty_msg="") -> str:
         """
         格式化datetime对象为字符串
         
@@ -38,6 +38,22 @@ class TimeUtils:
         dt = min(dt) if isinstance(dt, list) else dt
         return dt.strftime(format_str)
 
+    @staticmethod
+    def strptime(time_str: str, format_str: str = "%Y-%m-%d %H:%M:%S"):
+        """
+        将字符串转换为datetime对象
+
+        Args:
+            time_str (str): 时间字符串，格式为"YYYY-MM-DD HH:MM:SS"
+            format_str
+
+        Returns:
+            datetime: 转换后的datetime对象
+        """
+        if not time_str:
+            return None
+        return datetime.strptime(time_str, format_str)
+
     # 判断参数时间是否为今天
     @staticmethod
     def is_today(dt: datetime):
@@ -51,6 +67,7 @@ class TimeUtils:
             bool: True表示为今天，False表示不是今天
         """
         return dt.date() == datetime.now().date()
+
 
 # 使用示例
 if __name__ == "__main__":

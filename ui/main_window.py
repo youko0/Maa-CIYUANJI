@@ -124,47 +124,16 @@ class MainWindow(QMainWindow):
         """窗口关闭事件"""
         # 清理主页标签页的资源
         if self.home_tab:
-            self.home_tab.cleanup()
-        
-        # 停止定时器
-        if self.refresh_timer:
-            self.refresh_timer.stop()
-            
+            self.home_tab.close()
+        if self.novel_tab:
+            self.novel_tab.close()
+        if self.balance_tab:
+            self.balance_tab.close()
+
+        # # 停止定时器
+        # if self.refresh_timer:
+        #     self.refresh_timer.stop()
+        # 保存资源信息
+
         # 调用父类的关闭事件
         super().closeEvent(event)
-
-
-class AddNovelDialog(QDialog):
-    """添加小说对话框"""
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("添加小说")
-        self.setModal(True)
-        self.resize(300, 200)
-
-        self.init_ui()
-
-    def init_ui(self):
-        """初始化UI"""
-        layout = QFormLayout(self)
-
-        self.name_edit = QLineEdit()
-        self.start_chapter_edit = QLineEdit("1")
-        self.end_chapter_edit = QLineEdit("9999")
-
-        layout.addRow("小说名称:", self.name_edit)
-        layout.addRow("起始章节:", self.start_chapter_edit)
-        layout.addRow("结束章节:", self.end_chapter_edit)
-
-        # 按钮
-        button_layout = QHBoxLayout()
-        ok_btn = QPushButton("确定")
-        ok_btn.clicked.connect(self.accept)
-        cancel_btn = QPushButton("取消")
-        cancel_btn.clicked.connect(self.reject)
-
-        button_layout.addWidget(ok_btn)
-        button_layout.addWidget(cancel_btn)
-
-        layout.addRow(button_layout)

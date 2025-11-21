@@ -13,6 +13,7 @@ from typing import List
 
 from utils.logger import get_logger
 from core.config_manager import get_config_manager
+from utils.time_utils import TimeUtils
 
 
 @dataclass
@@ -31,7 +32,12 @@ class BalanceInfo:
 
     def to_dict(self) -> dict:
         """转换为字典"""
-        return asdict(self)
+        return {
+            "device_serial": self.device_serial,
+            "amount": self.amount,
+            "balance": self.balance,
+            "expire_time": TimeUtils.format(self.expire_time),
+        }
 
     @classmethod
     def from_dict(cls, data: dict) -> 'BalanceInfo':
@@ -39,8 +45,8 @@ class BalanceInfo:
         return cls(
             device_serial=data["device_serial"],
             amount=data["amount"],
-            expire_time=data["expire_time"],
-            balance=data["balance"]
+            balance=data["balance"],
+            expire_time=TimeUtils.strptime(data["expire_time"]),
         )
 
 
@@ -89,12 +95,36 @@ class BalanceManager:
 
         # 加载代币使用记录
         self.records: List[BalanceRecord] = []
+        self._load_balances()
         self._load_records()
+
+    def _load_balances(self):
+        """从配置文件加载余额信息"""
+        try:
+            info_datas = self.config_manager.get_config("device_balances", {})
+            self.device_balances = {}
+            for device_serial, balance_infos in info_datas.items():
+                self.device_balances[device_serial] = [BalanceInfo.from_dict(info) for info in balance_infos]
+            self.logger.info(f"加载了 {len(self.device_balances)} 个设备的余额信息")
+        except Exception as e:
+            self.logger.error(f"加载余额信息失败: {e}")
+
+    def save_balances(self):
+        """保存余额信息到配置文件"""
+        try:
+            info_datas = {}
+            for device_serial, balance_infos in self.device_balances.items():
+                info_datas[device_serial] = [info.to_dict() for info in balance_infos]
+            self.config_manager.set_config("device_balances", info_datas)
+            self.config_manager.save()
+            self.logger.info("余额信息保存成功")
+        except Exception as e:
+            self.logger.error(f"保存余额信息记录失败: {e}")
 
     def _load_records(self):
         """从配置文件加载代币使用记录"""
         try:
-            records_data = self.config_manager.get_config("coin_records", [])
+            records_data = self.config_manager.get_config("coin_records", {})
             self.records = [BalanceRecord.from_dict(record_data) for record_data in records_data]
             self.logger.info(f"加载了 {len(self.records)} 条代币使用记录")
         except Exception as e:
@@ -118,10 +148,6 @@ class BalanceManager:
     def add_balance(self, device_serial: str, amount: int, expire_time: datetime) -> List[BalanceInfo]:
         """为设备添加代币（签到获得）"""
         try:
-            # 计算过期时间（7天后）
-            expire_time = datetime.now() + timedelta(days=7)
-            expire_time_str = expire_time.strftime("%Y-%m-%d %H:%M:%S")
-
             # 创建新的代币对象
             balance_info = BalanceInfo(device_serial=device_serial, amount=amount, balance=amount, expire_time=expire_time)
 
@@ -132,6 +158,7 @@ class BalanceManager:
             # 保存更新后的代币信息
             # self._save_device_coins(device_serial, device_coins)
 
+            expire_time_str = expire_time.strftime("%Y-%m-%d %H:%M:%S")
             self.logger.info(f"为设备 {device_serial} 添加 {amount} 个代币，过期时间: {expire_time_str}")
             return device_balance_list
         except Exception as e:

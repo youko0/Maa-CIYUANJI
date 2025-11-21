@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (
     QTextEdit, QPushButton, QHeaderView
 )
 from PySide6.QtCore import Qt, Signal, QThread
-from PySide6.QtGui import QTextCursor
+from PySide6.QtGui import QTextCursor, QCloseEvent
 
 from core.config_manager import get_config_manager
 from core.maa_manager import get_maa_manager
@@ -179,15 +179,17 @@ class HomeTab(QWidget):
         """刷新设备列表"""
         self.logger.info("刷新设备列表")
         try:
-            device_info_list = self.maa_manager.get_connected_device_info_list()
-            self.device_table.setRowCount(len(device_info_list))
+            device_serial_list = self.maa_manager.get_connected_device_serial_list()
+            self.device_table.setRowCount(len(device_serial_list))
 
-            for row, device_info in enumerate(device_info_list):
+            for row, device_serial in enumerate(device_serial_list):
+                # 获取设备信息
+                device_info = self.maa_manager.get_device_info(device_serial)
                 self.device_table.setItem(row, 0, QTableWidgetItem(""))
                 self.device_table.setItem(row, 1, QTableWidgetItem(device_info.device_serial))
                 self.device_table.setItem(row, 2, QTableWidgetItem(str(device_info.balance)))
 
-                last_sign_in = "从未" if device_info.last_sign_in_time is None else device_info.last_sign_in_time.strftime("%Y-%m-%d %H:%M:%S")
+                last_sign_in = "从未" if device_info.last_sign_in_time is None else TimeUtils.format(device_info.last_sign_in_time)
                 self.device_table.setItem(row, 3, QTableWidgetItem(last_sign_in))
 
                 # 操作按钮
@@ -240,8 +242,10 @@ class HomeTab(QWidget):
 
     def one_click_check_in(self):
         """一键签到"""
-        device_info_list = self.maa_manager.get_connected_device_info_list()
-        for device_info in device_info_list:
+        device_serial_list = self.maa_manager.get_connected_device_serial_list()
+        for device_serial in device_serial_list:
+            # 获取设备信息
+            device_info = self.maa_manager.get_device_info(device_serial)
             # 判断今天是否已经进行签到
             if device_info.last_sign_in_time is None or TimeUtils.is_today(device_info.last_sign_in_time) is False:
                 tasker = self.maa_manager.get_device_tasker(device_info.device_serial)
@@ -263,10 +267,9 @@ class HomeTab(QWidget):
         # 清空日志显示
         self.log_text.clear()
 
-    def cleanup(self):
-        """清理资源"""
-        # 不需要特殊清理，Qt信号处理器会自动管理
-        pass
+    def closeEvent(self, event: QCloseEvent):
+        """窗口关闭事件"""
+        self.maa_manager.save_device_infos()
 
 
 class DeviceConnectionThread(QThread):

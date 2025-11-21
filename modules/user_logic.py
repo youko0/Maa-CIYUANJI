@@ -103,7 +103,7 @@ class UserLogic:
         if result and result.nodes and len(result.nodes) > 0:
             coin_num_str = result.nodes[0].recognition.best_result.text
             total_coin_num = int(coin_num_str)
-            print(f"[刷新余额]识别到设备代币总余额：{coin_num_str}")
+            self.logger.info(f"[刷新余额]识别到设备代币总余额：{coin_num_str}")
         else:
             self.logger.error(f"[刷新余额]没有识别到代币数量")
             return
@@ -122,8 +122,14 @@ class UserLogic:
         balance = sum([item.balance for item in balance_info_list])
         if balance != total_coin_num:
             self.logger.warning(f"[刷新余额]代币明细和总余额不一致，刷新失败")
+            # 调用返回按钮
+            self.tasker.post_task("androidBack").wait()
             return
         self.logger.info(f"[刷新余额]代币明细识别完毕，开始更新设备信息")
+        # 调用返回按钮
+        self.tasker.post_task("androidBack").wait()
+        # 调用返回按钮
+        self.tasker.post_task("androidBack").wait()
         # 更新设备信息及余额数据
         self.maa_manager.refresh_balance(self.device_serial, total_coin_num, balance_info_list)
 
@@ -208,6 +214,9 @@ class UserLogic:
                         # 处理日期格式问题，添加空格分隔符
                         if "00:00:00" in expire_time and " 00:00:00" not in expire_time:
                             expire_time = expire_time.replace("00:00:00", " 00:00:00")
+
+                        # 将日志转换为datetime类型
+                        expire_time = datetime.strptime(expire_time, "%Y-%m-%d %H:%M:%S")
                         break
 
                 # 只有当找到必要信息时才创建BalanceInfo对象

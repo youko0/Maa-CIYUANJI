@@ -5,7 +5,7 @@
 小说标签页模块
 包含小说管理和识别进度显示功能
 """
-
+from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QTableWidget, QTableWidgetItem,
     QTextEdit, QPushButton, QHeaderView, QDialog, QLineEdit, QFormLayout
@@ -166,6 +166,11 @@ class NovelTab(QWidget):
                 self.refresh_novel_list()
         except Exception as e:
             self.logger.error(f"删除小说失败: {e}")
+
+    def closeEvent(self, event: QCloseEvent):
+        """窗口关闭事件"""
+        # self.maa_manager.save_device_infos()
+        pass
 
 
 class AddNovelDialog(QDialog):

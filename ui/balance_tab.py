@@ -5,7 +5,7 @@
 余额标签页模块
 包含代币管理和使用记录显示功能
 """
-
+from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QTableWidget, QTableWidgetItem,
     QLabel, QPushButton, QHeaderView
@@ -25,7 +25,7 @@ class BalanceTab(QWidget):
         self.balance_manager = get_balance_manager()
         self.config_manager = get_config_manager()
         self.logger = get_logger()
-        
+
         self.init_ui()
 
     def init_ui(self):
@@ -106,3 +106,7 @@ class BalanceTab(QWidget):
                 self.record_table.setItem(row, 4, QTableWidgetItem(record.timestamp))
         except Exception as e:
             self.logger.error(f"刷新代币使用记录失败: {e}")
+
+    def closeEvent(self, event: QCloseEvent):
+        """窗口关闭事件"""
+        self.balance_manager.save_balances()

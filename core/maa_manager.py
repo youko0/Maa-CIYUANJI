@@ -5,9 +5,9 @@ MaaFramework设备管理器
 """
 
 import logging
-import datetime
 import json
 import os
+from datetime import datetime
 from typing import Dict, List, Optional, Any, Callable
 from dataclasses import dataclass, asdict
 
@@ -22,7 +22,6 @@ from maa.controller import AdbController
 from core.balance_manager import get_balance_manager, BalanceInfo
 from core.config_manager import get_config_manager
 from core.domain.device_info import DeviceInfo
-from demo.test1 import device_instances
 
 
 class MaaFrameworkManager(QObject):
@@ -57,7 +56,7 @@ class MaaFrameworkManager(QObject):
         # 存储设备控制器的字典
         self.device_controllers: Dict[str, AdbController] = {}
 
-        # 存储设备信息的字典
+        # 存储所有设备信息的字典
         self.device_infos: Dict[str, DeviceInfo] = {}
 
         # 初始化日志
@@ -70,7 +69,7 @@ class MaaFrameworkManager(QObject):
         # 加载资源包
         self._load_resources()
         # 加载设备名
-        self._load_device_names()
+        self._load_device_infos()
 
     def _register_custom_recognitions(self):
         """注册自定义识别"""
@@ -103,16 +102,31 @@ class MaaFrameworkManager(QObject):
             self.logger.error(f"加载资源包时出错: {e}")
             # 即使出错也要初始化游戏逻辑处理器
 
-    def _load_device_names(self):
-        """从配置文件加载小说信息"""
-        pass
-        # try:
-        #     novels_data = self.config_manager.get_config("devices", {})
-        #     for name, novel_data in novels_data.items():
-        #         self.novels[name] = NovelInfo.from_dict(novel_data)
-        #     self.logger.info(f"加载了 {len(self.novels)} 本小说")
-        # except Exception as e:
-        #     self.logger.error(f"加载小说信息失败: {e}")
+    def _load_device_infos(self):
+        """从配置文件加载设备信息"""
+        try:
+            info_datas = self.config_manager.get_config("device_infos", {})
+            self.device_infos = {}
+            for device_serial, device_info_data in info_datas.items():
+                # 注意：这里假设每个设备只有一个DeviceInfo对象，而不是列表
+                self.device_infos[device_serial] = DeviceInfo.from_dict(device_info_data)
+            self.logger.info(f"加载了 {len(self.device_infos)} 条设备信息")
+        except Exception as e:
+            self.logger.error(f"加载设备信息失败: {e}")
+
+    def save_device_infos(self):
+        """保存设备信息到配置文件"""
+        try:
+            info_datas = {}
+            for device_serial, device_info in self.device_infos.items():
+                # 注意：这里直接保存DeviceInfo对象的字典表示，而不是列表
+                info_datas[device_serial] = device_info.to_dict()
+
+            self.config_manager.set_config("device_infos", info_datas)
+            self.config_manager.save()
+            self.logger.info("设备信息保存成功")
+        except Exception as e:
+            self.logger.error(f"保存设备信息记录失败: {e}")
 
     def find_devices(self) -> List[AdbDevice]:
         """
@@ -179,7 +193,8 @@ class MaaFrameworkManager(QObject):
             # 存储设备实例
             self.device_instances[device_serial] = tasker
             self.device_controllers[device_serial] = controller
-            self.device_infos[device_serial] = DeviceInfo(device_serial)
+            if device_serial not in self.device_infos:
+                self.device_infos[device_serial] = DeviceInfo(device_serial=device_serial)
             # 初始化设备余额信息
             self.balance_manager.init_balance(device_serial)
 
@@ -199,13 +214,10 @@ class MaaFrameworkManager(QObject):
         """
         try:
             if device_serial in self.device_instances:
-                # 保存设备信息和余额信息
-
                 # 清理资源
                 if device_serial in self.device_controllers:
                     del self.device_controllers[device_serial]
                 del self.device_instances[device_serial]
-                del self.device_infos[device_serial]
                 self.logger.info(f"设备已断开: {device_serial}")
         except Exception as e:
             self.logger.error(f"断开设备 {device_serial} 时出错: {e}")
@@ -243,7 +255,7 @@ class MaaFrameworkManager(QObject):
         """
         return device_serial in self.device_instances
 
-    def get_device_info(self, device_serial: str) -> Optional[DeviceInfo]:
+    def get_device_info(self, device_serial: str) -> DeviceInfo:
         """
         获取设备对应的DeviceInfo实例
 
@@ -255,12 +267,12 @@ class MaaFrameworkManager(QObject):
         """
         return self.device_infos.get(device_serial)
 
-    def get_connected_device_info_list(self) -> List[DeviceInfo]:
+    def get_all_device_info_list(self) -> List[DeviceInfo]:
         """
-        获取已连接的设备序列号列表
+        获取所有的设备信息列表
 
         Returns:
-            已连接设备的序列号列表
+            所有的设备信息列表
         """
         return list(self.device_infos.values())
 
