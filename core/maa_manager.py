@@ -335,6 +335,15 @@ class MaaFrameworkManager(QObject):
         # 通知设备列表刷新
         self.device_info_changed_event.emit()
 
+    def update_sign_in_time(self, device_serial: str):
+        """更新设备最后签到时间"""
+        self.logger.info(f"更新设备 {device_serial} 最后签到时间")
+        device_info = self.get_device_info(device_serial)
+        device_info.last_sign_in_time = datetime.now()
+
+        # 通知设备列表刷新
+        self.device_info_changed_event.emit()
+
     def refresh_balance(self, device_serial: str, total_balance: int, balance_info_list: List[BalanceInfo]):
         """刷新设备余额信息"""
         self.logger.info(f"刷新设备余额信息: {total_balance} ")

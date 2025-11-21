@@ -79,6 +79,8 @@ class UserLogic:
         else:
             # 签到失败
             self.logger.warning(f"[签到]设备已签到")
+            # 更新设备签到时间
+            self.maa_manager.update_sign_in_time(self.device_serial)
 
         # 调用返回按钮
         self.tasker.post_task("androidBack").wait()
