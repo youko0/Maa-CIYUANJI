@@ -15,6 +15,7 @@ from PySide6.QtCore import QThread, Signal, QObject
 from maa.tasker import Tasker
 
 from modules.game_logger import GameLoggerFactory
+from modules.novel_logic import NovelLogic
 from modules.page_manager import PageManager
 from modules.user_logic import UserLogic
 
@@ -35,7 +36,7 @@ class DeviceTaskRunner(QObject):
     def __init__(self, device_serial: str, task_name=""):
         super().__init__()
         self.device_serial = device_serial
-        self.task_name = task_name  # 任务名称：(signIn、initialized、ocrBalance、ocrNovel)
+        self.task_name = task_name  # 任务名称：(signIn、refreshBalance、initialized、ocrNovel)
         self.logger = GameLoggerFactory.get_logger(device_serial)
         self._running = True
         self._sleep_interrupted = False  # 添加中断休眠标志
@@ -47,7 +48,8 @@ class DeviceTaskRunner(QObject):
         # 页面管理器
         self.page_manager = PageManager(self.device_serial, self._on_execution_stopped)
         self.user_logic = UserLogic(self.device_serial, self.user_data_updated)
-        
+        self.novel_logic = NovelLogic(self.device_serial)
+
         # 线程结束回调
         self._on_finished_callback = None
 
@@ -75,6 +77,11 @@ class DeviceTaskRunner(QObject):
                         self.logger.info(f"[系统]开始执行刷新余额任务")
                         self.page_manager.check_is_home_page()
                         self.user_logic.refresh_balance()
+                    elif self.task_name == "initialized":
+                        self.logger.info(f"[系统]开始执行初始化任务")
+                        self.page_manager.check_is_home_page()
+                        self.novel_logic.initialized()
+
                 if self.stop_event.is_set():
                     return
 
@@ -142,7 +149,7 @@ class DeviceTaskRunner(QObject):
         """停止线程"""
         self._running = False
         self.stop_event.set()
-        
+
     def is_running(self) -> bool:
         """检查线程是否正在运行"""
         return self._running and not self.stopped_event.is_set()

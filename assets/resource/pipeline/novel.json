@@ -13,5 +13,21 @@
     "action": "click",
     "timeout": 1200,
     "describe": "判断是否存在书架tabbar，存在则点击"
+  },
+  "existAndClickSettingsBtn": {
+    "recognition": "OCR",
+    "roi": [489, 1162, 230, 117],
+    "expected": "^设置$",
+    "action": "click",
+    "timeout": 1200,
+    "describe": "判断是否存在设置按钮，存在则点击"
+  },
+  "existAndClickMoreSettingsBtn": {
+    "recognition": "OCR",
+    "roi": [370, 1025, 349, 138],
+    "expected": "^更多设置$",
+    "action": "click",
+    "timeout": 1200,
+    "describe": "判断是否存在更多设置按钮，存在则点击"
   }
 }

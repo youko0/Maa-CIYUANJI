@@ -355,6 +355,13 @@ class MaaFrameworkManager(QObject):
         # 通知设备列表刷新
         self.device_info_changed_event.emit()
 
+    def initialized_complete(self, device_serial: str):
+        """初始化完成"""
+        """更新设备最后签到时间"""
+        self.logger.info(f"设备 {device_serial} 初始化完成")
+        device_info = self.get_device_info(device_serial)
+        device_info.is_initialized = True
+
 
 # 全局maa管理器实例
 _MAA_MANAGER = None

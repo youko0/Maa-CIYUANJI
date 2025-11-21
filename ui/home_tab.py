@@ -71,6 +71,9 @@ class HomeTab(QWidget):
         self.one_click_refresh_balance_btn = QPushButton("一键刷新余额")
         self.one_click_refresh_balance_btn.clicked.connect(self.one_click_refresh_balance)
         device_btn_layout.addWidget(self.one_click_refresh_balance_btn)
+        self.one_click_initialized_btn = QPushButton("一键初始化")
+        self.one_click_initialized_btn.clicked.connect(self.one_click_initialized)
+        device_btn_layout.addWidget(self.one_click_initialized_btn)
 
         device_btn_layout.addStretch()
 
@@ -257,6 +260,17 @@ class HomeTab(QWidget):
         device_serial_list = self.maa_manager.get_connected_device_serial_list()
         for device_serial in device_serial_list:
             self.start_device_task(device_serial, "refreshBalance")
+
+    def one_click_initialized(self):
+        """一键初始化"""
+        device_serial_list = self.maa_manager.get_connected_device_serial_list()
+        for device_serial in device_serial_list:
+            # 判断设备是否已经初始化过
+            device_info = self.maa_manager.get_device_info(device_serial)
+            if device_info.is_initialized:
+                self.logger.info(f"设备 {device_serial} 已经初始化过")
+                continue
+            self.start_device_task(device_serial, "initialized")
 
     def clear_logs(self):
         """清空日志"""
