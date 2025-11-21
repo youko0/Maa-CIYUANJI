@@ -14,7 +14,9 @@ from PySide6.QtCore import Qt
 
 from core.balance_manager import get_balance_manager
 from core.config_manager import get_config_manager
+from core.maa_manager import get_maa_manager
 from utils.logger import get_logger
+from utils.time_utils import TimeUtils
 
 
 class BalanceTab(QWidget):
@@ -22,6 +24,7 @@ class BalanceTab(QWidget):
 
     def __init__(self):
         super().__init__()
+        self.maa_manager = get_maa_manager()
         self.balance_manager = get_balance_manager()
         self.config_manager = get_config_manager()
         self.logger = get_logger()
@@ -46,13 +49,22 @@ class BalanceTab(QWidget):
         # 设备余额列表
         device_coin_group = QGroupBox("各设备余额")
         device_coin_layout = QVBoxLayout(device_coin_group)
-        self.device_coin_table = QTableWidget()
-        self.device_coin_table.setColumnCount(3)
-        self.device_coin_table.setHorizontalHeaderLabels([
+        self.device_table = QTableWidget()
+        self.device_table.setColumnCount(3)
+        self.device_table.setHorizontalHeaderLabels([
             "设备地址", "余额", "最早过期时间"
         ])
-        self.device_coin_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        device_coin_layout.addWidget(self.device_coin_table)
+
+        header = self.device_table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+
+        # 启用表格排序功能
+        self.device_table.setSortingEnabled(True)
+        # 设置默认按照"下次执行时间"列升序排序（列索引为1）
+        self.device_table.sortByColumn(2, Qt.SortOrder.AscendingOrder)
+        device_coin_layout.addWidget(self.device_table)
 
         overview_layout.addWidget(total_coin_group, 1)
         overview_layout.addWidget(device_coin_group, 2)
@@ -84,7 +96,19 @@ class BalanceTab(QWidget):
         """刷新代币信息"""
         try:
             # 刷新总余额
-            total_balance = self.balance_manager.get_total_balance_all_devices()
+            device_info_list = self.maa_manager.get_all_device_info_list()
+            self.device_table.setRowCount(len(device_info_list))
+            total_balance = 0
+            for row, device_info in enumerate(device_info_list):
+                total_balance += device_info.balance
+                self.device_table.setItem(row, 0, QTableWidgetItem(device_info.device_serial))
+                self.device_table.setItem(row, 1, QTableWidgetItem(str(device_info.balance)))
+                # 获取代币最早过期时间
+                device_balance_list = self.balance_manager.get_device_balance_list(device_info.device_serial)
+                # 获取device_balance_list中，expire_time最小值对象
+                balance_info = min(device_balance_list, key=lambda x: x.expire_time)
+                self.device_table.setItem(row, 2, QTableWidgetItem(TimeUtils.format(balance_info.expire_time, "%Y-%m-%d") + " 凌晨将过期 " + str(balance_info.balance) + "个代币"))
+
             self.total_coin_label.setText(str(total_balance))
 
             # 刷新使用记录
