@@ -41,6 +41,7 @@ class MainWindow(QMainWindow):
         self.home_tab = None
         self.novel_tab = None
         self.balance_tab = None
+        self.tab_widget = None
 
         self.init_ui()
         self.refresh_ui()
@@ -63,17 +64,18 @@ class MainWindow(QMainWindow):
         main_layout = QVBoxLayout(central_widget)
 
         # 创建标签页
-        tab_widget = QTabWidget()
-        main_layout.addWidget(tab_widget)
+        self.tab_widget = QTabWidget()
+        self.tab_widget.currentChanged.connect(self.on_tab_changed)
+        main_layout.addWidget(self.tab_widget)
 
         # 创建各个标签页
         self.home_tab = HomeTab()
         self.novel_tab = NovelTab()
         self.balance_tab = BalanceTab()
 
-        tab_widget.addTab(self.home_tab, "主页")
-        tab_widget.addTab(self.novel_tab, "小说")
-        tab_widget.addTab(self.balance_tab, "余额")
+        self.tab_widget.addTab(self.home_tab, "主页")
+        self.tab_widget.addTab(self.novel_tab, "小说")
+        self.tab_widget.addTab(self.balance_tab, "余额")
 
         # 创建菜单栏
         self.create_menu_bar()
@@ -113,6 +115,12 @@ class MainWindow(QMainWindow):
     def show_about(self):
         """显示关于对话框"""
         QMessageBox.about(self, "关于", "次元姬小说助手 v1.0.0\n基于MaaFramework + PySide6开发")
+
+    def on_tab_changed(self, index):
+        """标签页切换事件处理"""
+        # 如果切换到余额标签页（索引为2），则刷新余额信息
+        if index == 2:
+            self.balance_tab.refresh_balance_info()
 
     def refresh_ui(self):
         """刷新整个UI"""
