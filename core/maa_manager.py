@@ -276,6 +276,19 @@ class MaaFrameworkManager(QObject):
         """
         return list(self.device_infos.values())
 
+    def get_connected_device_info_list(self) -> List[DeviceInfo]:
+        """
+        获取已连接的设备信息列表
+
+        Returns:
+            所有的设备信息列表
+        """
+        device_serial_list = list(self.device_instances.keys())
+        device_info_list = []
+        for device_serial in device_serial_list:
+            device_info_list.append(self.device_infos.get(device_serial))
+        return device_info_list
+
     def one_click_connect_device(self, logger=None):
         """
         一键连接设备
