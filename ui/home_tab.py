@@ -85,6 +85,8 @@ class HomeTab(QWidget):
         ])
         self.device_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.device_table.setSelectionBehavior(QTableWidget.SelectRows)
+        # 禁止双击编辑
+        self.device_table.setEditTriggers(QTableWidget.NoEditTriggers)
 
         device_layout.addLayout(device_btn_layout)
         device_layout.addWidget(self.device_table)
@@ -188,7 +190,7 @@ class HomeTab(QWidget):
             for row, device_serial in enumerate(device_serial_list):
                 # 获取设备信息
                 device_info = self.maa_manager.get_device_info(device_serial)
-                self.device_table.setItem(row, 0, QTableWidgetItem(""))
+                self.device_table.setItem(row, 0, QTableWidgetItem(device_info.name))
                 self.device_table.setItem(row, 1, QTableWidgetItem(device_info.device_serial))
                 self.device_table.setItem(row, 2, QTableWidgetItem(str(device_info.balance)))
 

@@ -194,7 +194,9 @@ class MaaFrameworkManager(QObject):
             self.device_instances[device_serial] = tasker
             self.device_controllers[device_serial] = controller
             if device_serial not in self.device_infos:
-                self.device_infos[device_serial] = DeviceInfo(device_serial=device_serial)
+                self.device_infos[device_serial] = DeviceInfo(device_serial=device_serial, name=device_info.name)
+            else:
+                self.device_infos[device_serial].name = device_info.name
             # 初始化设备余额信息
             self.balance_manager.init_balance(device_serial)
 
