@@ -4,7 +4,7 @@
     "roi": [14, 1178, 704, 101],
     "expected": "^书架$",
     "timeout": 1200,
-    "describe": "判断是否存在书架tabbar，存在则点击"
+    "describe": "判断是否存在书架tabbar"
   },
   "existAndClickBookshelf": {
     "recognition": "OCR",
@@ -13,6 +13,21 @@
     "action": "click",
     "timeout": 1200,
     "describe": "判断是否存在书架tabbar，存在则点击"
+  },
+  "existAndClickListModeBtn": {
+    "recognition": "OCR",
+    "roi": [498, 166, 205, 342],
+    "expected": "^列表模式$",
+    "action": "click",
+    "timeout": 1200,
+    "describe": "判断是否存在设置按钮，存在则点击"
+  },
+  "existListGridModeBtn": {
+    "recognition": "OCR",
+    "roi": [498, 166, 205, 342],
+    "expected": "^宫格模式$",
+    "timeout": 1200,
+    "describe": "判断是否存在设置按钮，存在则点击"
   },
   "existAndClickSettingsBtn": {
     "recognition": "OCR",
@@ -29,5 +44,75 @@
     "action": "click",
     "timeout": 1200,
     "describe": "判断是否存在更多设置按钮，存在则点击"
+  },
+  "existAndClickNovelInBookshelf": {
+    "recognition": "OCR",
+    "roi": [3, 321, 716, 860],
+    "expected": "^小说名$",
+    "action": "click",
+    "timeout": 1200,
+    "describe": "判断书架是否存在某个小说，存在则点击"
+  },
+  "ocrNovelBookshelfStatus": {
+    "recognition": "OCR",
+    "roi": [72, 1188, 165, 72],
+    "expected": "^加入书架|已在书架$",
+    "timeout": 1200,
+    "describe": "识别小说书架状态"
+  },
+  "existAndClickStartReadingBtn": {
+    "recognition": "OCR",
+    "roi": [426, 1167, 293, 110],
+    "expected": "^开始阅读$",
+    "action": "click",
+    "timeout": 1200,
+    "describe": "判断书架是否存在某个小说，存在则点击"
+  },
+  "existAndClickCatalogueBtn": {
+    "recognition": "OCR",
+    "roi": [14, 1178, 704, 101],
+    "expected": "^目录$",
+    "action": "click",
+    "timeout": 1200,
+    "describe": "判断是否存在目录按钮，存在则点击"
+  },
+  "existAndClickChapter": {
+    "recognition": "OCR",
+    "roi": [68, 514, 121, 765],
+    "expected": "^001",
+    "action": "click",
+    "timeout": 1200,
+    "describe": "判断是否存在章节，存在则点击"
+  },
+  "ocrNovelChapterName": {
+    "recognition": "OCR",
+    "roi": [7, 21, 685, 53],
+    "timeout": 1200,
+    "describe": "识别小说章节名"
+  },
+  "ocrNovelChapterContent": {
+    "recognition": "OCR",
+    "roi": [1, 74, 718, 1126],
+    "order_by": "Vertical",
+    "timeout": 2000,
+    "describe": "识别小说章节内容"
+  },
+  "ocrChapterContentPageNum": {
+    "recognition": "OCR",
+    "roi": [21, 1209, 96, 45],
+    "expected": "^[0-9/]*$",
+    "timeout": 1200,
+    "describe": "识别章节内容页码"
+  },
+  "ocrChapterPrice": {
+    "recognition": "OCR",
+    "roi": [8, 967, 711, 235],
+    "expected": "^余额不足:|订阅本章:[0-9]*书币$",
+    "replace": [
+      ["：", ":"],
+      [":", ":"]
+    ],
+    "timeout": 1200,
+    "describe": "识别章节价格，考虑到有些非付费章节，需要自己提取价格"
   }
 }

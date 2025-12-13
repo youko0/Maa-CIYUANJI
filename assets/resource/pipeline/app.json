@@ -41,9 +41,15 @@
   },
   "swipe": {
     "action": "Swipe",
-    "begin": [324, 1195, 0, 0],
-    "end": [317, 275, 0, 0],
-    "duration": 1800,
+    "begin": [331, 1238, 0, 0],
+    "end": [335, 360, 0, 0],
+    "duration": 1200,
     "describe": "滑动屏幕（公共方法，通过pipeline_override覆盖参数）"
+  },
+  "inputText": {
+    "action": "InputText",
+    "input_text": "7",
+    "timeout": 1000,
+    "describe": "输入文本内容（使用时替换input_text内容）"
   }
 }
