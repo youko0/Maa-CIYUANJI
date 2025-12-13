@@ -201,7 +201,7 @@ class NovelLogic:
                     self.logger.info(f"[小说识别]设备余额不足，结束识别")
                     break
             else:
-                self.logger.error(f"[小说识别]没有识别到{chapter_num}章章节价格，可能为免费章节，直接进行识别")
+                self.logger.debug(f"[小说识别]没有识别到{chapter_num}章章节价格，可能为免费章节，直接进行识别")
 
             # 识别章节名
             chapter_name = f"{chapter_num}"
@@ -223,8 +223,6 @@ class NovelLogic:
             else:
                 self.logger.info(f"[小说识别]没有识别到{chapter_name}章章节页码，章节可能尚未解锁")
 
-
-
             # 识别小说内容
             novel_chapter_content = self._execute_ocr_novel_chapter_content_fun(chapter_num, page_num)
             # 保存小说内容
@@ -236,6 +234,7 @@ class NovelLogic:
                 "name": chapter_name,
                 "price": chapter_price,
                 "content": novel_chapter_content,
+                "device_serial": self.device_serial
             }
             try:
                 with open(novels_chapter_path, 'w', encoding='utf-8') as f:
@@ -249,11 +248,13 @@ class NovelLogic:
         # 识别小说内容
         novel_chapter_content = ""
         for i in range(page_num):
+            is_first_line = True
             ocr_result = self.tasker.post_task("ocrNovelChapterContent").wait().get()
             if ocr_result.status.succeeded:
                 line_result_list = ocr_result.nodes[0].recognition.filtered_results
                 for line_result in line_result_list:
-                    if line_result.box[0] >= 80:
+                    is_first_line = False
+                    if line_result.box[0] >= 80 and is_first_line is False:
                         novel_chapter_content += "\n\t\t"
                     novel_chapter_content += line_result.text
             else:
