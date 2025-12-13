@@ -14,6 +14,7 @@ from PySide6.QtCore import QThread, Signal, QObject
 
 from maa.tasker import Tasker
 
+from core.maa_manager import get_maa_manager
 from modules.game_logger import GameLoggerFactory
 from modules.novel_logic import NovelLogic
 from modules.page_manager import PageManager
@@ -33,11 +34,13 @@ class DeviceTaskRunner(QObject):
     user_data_updated = Signal(str, object)  # device_serial, user_data
     execution_stopped = Signal(str)  # device_serial
 
-    def __init__(self, device_serial: str, task_name=""):
+    def __init__(self, device_serial: str, task_name="", task_params: dict = None):
         super().__init__()
         self.device_serial = device_serial
         self.task_name = task_name  # 任务名称：(signIn、refreshBalance、initialized、ocrNovel)
+        self.task_params = task_params
         self.logger = GameLoggerFactory.get_logger(device_serial)
+        self.maa_manager = get_maa_manager()
         self._running = True
         self._sleep_interrupted = False  # 添加中断休眠标志
 
@@ -81,6 +84,19 @@ class DeviceTaskRunner(QObject):
                         self.logger.info(f"[系统]开始执行初始化任务")
                         self.page_manager.check_is_home_page()
                         self.novel_logic.initialized()
+                    elif self.task_name == "initialized":
+                        self.logger.info(f"[系统]开始执行初始化任务")
+                        self.page_manager.check_is_home_page()
+                        self.novel_logic.initialized()
+                    elif self.task_name == "ocrNovel":
+                        self.logger.info(f"[系统]开始执行小说识别任务")
+                        self.page_manager.check_is_home_page()
+                        # 判断该设备是否已经进行了小说识别初始化
+                        device_info = self.maa_manager.get_device_info(self.device_serial)
+                        if not device_info.is_initialized:
+                            self.novel_logic.initialized()
+                        self.page_manager.check_is_home_page()
+                        self.novel_logic.ocr_novel(self.task_params["novel_name"], self.task_params["chapter_list"])
 
                 if self.stop_event.is_set():
                     return

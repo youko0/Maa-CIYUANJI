@@ -23,14 +23,14 @@ class DeviceTaskThreadManager:
         self.logger = logging.getLogger(__name__)
         self.device_threads: dict[str, DeviceTaskRunner] = {}
 
-    def start_device_task(self, device_serial: str, task_name: str) -> Optional[DeviceTaskRunner]:
+    def start_device_task(self, device_serial: str, task_name: str, task_params: dict = None) -> Optional[DeviceTaskRunner]:
         """
         启动设备任务线程
         
         Args:
             device_serial: 设备序列号
-            tasker: MaaFramework tasker实例
             task_name: 任务名称：(signIn、refreshBalance、initialized、ocrBalance、ocrNovel)
+            task_params: 任务参数
             
         Returns:
             创建的任务线程实例（用于连接信号），失败时返回None
@@ -48,11 +48,11 @@ class DeviceTaskThreadManager:
                     self._cleanup_thread(device_serial)
 
             # 创建新的任务线程
-            runner = DeviceTaskRunner(device_serial, task_name)
-            
+            runner = DeviceTaskRunner(device_serial, task_name, task_params)
+
             # 重置stopped_event，确保状态正确
             runner.stopped_event.clear()
-            
+
             # 设置线程结束回调，确保自动清理
             runner.set_on_finished_callback(self._cleanup_thread_on_finish)
 
@@ -68,7 +68,7 @@ class DeviceTaskThreadManager:
         except Exception as e:
             self.logger.error(f"启动设备 {device_serial} 任务线程失败: {e}", True)
             return None
-            
+
     def _cleanup_thread_on_finish(self, device_serial: str):
         """线程结束时的清理回调"""
         self.logger.debug(f"线程结束回调触发，清理设备 {device_serial}")

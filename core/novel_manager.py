@@ -24,6 +24,7 @@ class NovelInfo:
                  end_chapter: int = 9999,
                  current_chapter=1,
                  complete_chapter: List[int] = [],
+                 chapter_default_price: int = 15,
                  last_recognize_time=None,
                  is_active=True,
                  progress=0.0):
@@ -32,6 +33,7 @@ class NovelInfo:
         self.end_chapter = end_chapter
         self.current_chapter = current_chapter
         self.complete_chapter: List[int] = complete_chapter  # 记录当前章节之后章节已经识别过的章节数
+        self.chapter_default_price = chapter_default_price
         self.last_recognize_time: datetime = last_recognize_time  # 最后识别时间
         self.is_active = is_active  # 是否启用
         self.progress = progress  # 识别进度百分比
@@ -44,6 +46,7 @@ class NovelInfo:
             "end_chapter": self.end_chapter,
             "current_chapter": self.current_chapter,
             "complete_chapter": self.complete_chapter,
+            "chapter_default_price": self.chapter_default_price,
             "last_recognize_time": self.last_recognize_time,
             "is_active": self.is_active,
             "progress": self.progress
@@ -58,6 +61,7 @@ class NovelInfo:
             data.get("end_chapter", -1),
             data.get("current_chapter", 1),
             data.get("complete_chapter", []),
+            data.get("chapter_default_price", 15),
             data.get("last_recognize_time"),
             data.get("is_active", True),
             data.get("progress", 0.0)
@@ -154,6 +158,27 @@ class NovelManager:
             self.logger.error(f"添加小说 {name} 失败: {e}")
             return False
 
+    def add_novel_with_price(self, name: str, start_chapter: int = 1, end_chapter: int = 9999, chapter_default_price: int = 15) -> bool:
+        """添加新小说（支持章节默认价格）"""
+        try:
+            if name in self.novels:
+                self.logger.warning(f"小说 {name} 已存在")
+                return False
+
+            novel = NovelInfo(name, start_chapter, end_chapter, chapter_default_price=chapter_default_price)
+            self.novels[name] = novel
+
+            # 创建小说目录
+            novel_dir = self.novels_dir / name
+            novel_dir.mkdir(exist_ok=True)
+
+            self.save_novels()
+            self.logger.info(f"添加小说 {name} 成功，章节默认价格: {chapter_default_price}")
+            return True
+        except Exception as e:
+            self.logger.error(f"添加小说 {name} 失败: {e}")
+            return False
+
     def remove_novel(self, name: str) -> bool:
         """移除小说"""
         try:
@@ -206,6 +231,10 @@ class NovelManager:
     def get_active_novels(self) -> List[NovelInfo]:
         """获取启用的小说"""
         return [novel for novel in self.novels.values() if novel.is_active]
+
+    def get_novel(self, name: str) -> NovelInfo:
+        """获取指定小说"""
+        return self.novels.get(name)
 
     def start_recognize(self, name: str) -> bool:
         """开始识别指定小说"""

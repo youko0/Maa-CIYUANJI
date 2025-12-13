@@ -123,7 +123,9 @@ class UserLogic:
         # 计算balance_info_list总余额是否等于total_coin_num
         balance = sum([item.balance for item in balance_info_list])
         if balance != total_coin_num:
-            self.logger.warning(f"[刷新余额]代币明细和总余额不一致，刷新失败")
+            self.logger.warning(f"[刷新余额]代币明细和总余额不一致，刷新失败。总额为：{total_coin_num}，识别为：{balance}")
+            for item in balance_info_list:
+                self.logger.warning(f"总额：{item.amount}，余额：{item.balance}，过期时间：{item.expire_time}")
             # 调用返回按钮
             self.tasker.post_task("androidBack").wait()
             return
@@ -142,7 +144,7 @@ class UserLogic:
         while True:
             find_goods_list_result = self.tasker.post_task("ocrCoinDetails").wait().get()
             if find_goods_list_result and len(find_goods_list_result.nodes) > 0:
-                ocr_result_list = find_goods_list_result.nodes[0].recognition.filterd_results
+                ocr_result_list = find_goods_list_result.nodes[0].recognition.filtered_results
                 balance_infos = self.parse_ocr_to_balance_info(ocr_result_list, device_serial)
                 # 求balance_infos较balance_info_list的差集
                 balance_infos = [item for item in balance_infos if item not in balance_info_list]
@@ -151,7 +153,7 @@ class UserLogic:
                 else:
                     break
             # 滑动屏幕翻页
-            self.tasker.controller.post_swipe(324, 1195, 317, 275, 1200).wait()
+            self.tasker.controller.post_swipe(331, 1238, 335, 360, 1500).wait()
             time.sleep(0.2)
 
         return balance_info_list
@@ -212,17 +214,23 @@ class UserLogic:
                 # 查找过期时间（以"有效期"开头的文本）
                 for element in group_elements:
                     if element.text.startswith("有效期"):
-                        expire_time = element.text.replace("有效期", "")
+                        expire_time_str = element.text.replace("有效期", "")
                         # 处理日期格式问题，添加空格分隔符
-                        if "00:00:00" in expire_time and " 00:00:00" not in expire_time:
-                            expire_time = expire_time.replace("00:00:00", " 00:00:00")
-
-                        # 将日志转换为datetime类型
-                        expire_time = datetime.strptime(expire_time, "%Y-%m-%d %H:%M:%S")
+                        if "00:00:00" in expire_time_str and " 00:00:00" not in expire_time_str:
+                            expire_time_str = expire_time_str.replace("00:00:00", " 00:00:00")
+                        
+                        # 清除首尾空白字符
+                        expire_time_str = expire_time_str.strip()
+                        
+                        # 检查过期时间是否为空
+                        if expire_time_str:
+                            # 将日志转换为datetime类型
+                            expire_time = datetime.strptime(expire_time_str, "%Y-%m-%d %H:%M:%S")
                         break
 
-                # 只有当找到必要信息时才创建BalanceInfo对象
-                if amount > 0 or balance > 0 or expire_time:
+                # 只有当找到必要信息且有效时才创建BalanceInfo对象
+                # 总额不可能为0，过期时间不能为空
+                if (amount > 0 and balance >= 0 and expire_time) or (amount >= 0 and balance > 0 and expire_time):
                     # 创建BalanceInfo对象
                     balance_info = BalanceInfo(
                         device_serial=device_serial,

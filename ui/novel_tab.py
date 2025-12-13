@@ -5,6 +5,8 @@
 小说标签页模块
 包含小说管理和识别进度显示功能
 """
+from typing import Dict, List
+
 from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QTableWidget, QTableWidgetItem,
@@ -14,7 +16,11 @@ from PySide6.QtWidgets import (
 from core.config_manager import get_config_manager
 from core.maa_manager import get_maa_manager
 from core.novel_manager import get_novel_manager
+from modules.device_task_thread_manager import get_device_task_thread_manager
 from utils.logger import get_logger
+
+# 添加设备选择对话框的导入
+from ui.device_selection_dialog import DeviceSelectionDialog
 
 
 class NovelTab(QWidget):
@@ -26,6 +32,9 @@ class NovelTab(QWidget):
         self.config_manager = get_config_manager()
         self.maa_manager = get_maa_manager()
         self.logger = get_logger()
+
+        # 任务线程管理器
+        self.task_thread_manager = get_device_task_thread_manager()
 
         self.init_ui()
 
@@ -82,8 +91,10 @@ class NovelTab(QWidget):
             name = dialog.name_edit.text()
             start_chapter = int(dialog.start_chapter_edit.text() or "1")
             end_chapter = int(dialog.end_chapter_edit.text() or "9999")
+            chapter_default_price = int(dialog.chapter_default_price_edit.text() or "15")  # 获取默认价格
 
-            success = self.novel_manager.add_novel(name, start_chapter, end_chapter)
+            # 修改调用add_novel方法，传入chapter_default_price参数
+            success = self.novel_manager.add_novel_with_price(name, start_chapter, end_chapter, chapter_default_price)
             if success:
                 self.refresh_novel_list()
 
@@ -142,18 +153,75 @@ class NovelTab(QWidget):
     def start_novel_recognize(self, name: str):
         """开始识别小说"""
         try:
+            novel_info = self.novel_manager.get_novel(name)
+            # 判断小说状态是否启用
+            if not novel_info.is_active:
+                self.logger.error(f"小说 {name} 状态未启用")
+                QMessageBox.warning(self, "提示", "小说状态未启用")
+                return
+
             # 判断是否存在已连接的设备，如果没有则提示
-            device_info_list = self.maa_manager.get_connected_device_info_list()
-            if not device_info_list:
+            if not self.maa_manager.get_connected_device_serial_list():
                 self.logger.error("请先连接设备")
                 # 弹窗提示
                 QMessageBox.warning(self, "提示", "请先连接设备")
                 return
+
             # 弹出设备选择框
+            dialog = DeviceSelectionDialog(self)
+            if dialog.exec() == QDialog.Accepted:
+                selected_devices = dialog.get_selected_devices()
+                if not selected_devices:
+                    QMessageBox.warning(self, "提示", "未选择任何设备")
+                    return
 
+                # 在选中的设备中进行识别
+                self.progress_text.append(f"开始在 {len(selected_devices)} 个设备上识别小说: {name}")
 
-            success = self.novel_manager.start_recognize(name)
-            # 获取当前小说进度，根据当前连接设备自动分配章节
+                ocr_novel_params: Dict[str, any] = {}
+                current_chapter = novel_info.current_chapter
+                # 需要根据选中的设备分配章节并启动识别任务
+                for device_info in selected_devices:
+                    # 根据设备余额，分配不同设备识别的章节数
+                    chapter_quantity = 5
+                    if novel_info.chapter_default_price > 0:
+                        chapter_quantity = device_info.balance // novel_info.chapter_default_price
+                    if chapter_quantity > 0:
+                        chapter_list = []
+                        for i in range(chapter_quantity):
+                            current_chapter = current_chapter + 1
+                            chapter_list.append(current_chapter)
+                        ocr_novel_params[device_info.device_serial] = {
+                            "novel_name": name,
+                            "chapter_list": chapter_list,
+                        }
+                        self.progress_text.append(f"- 准备在设备 {device_info.name} ({device_info.device_serial}) 上进行识别 {name} 小说，分别识别 {chapter_list} 章节")
+                        # 获取当前小说进度，根据当前连接设备自动分配章节
+                        task_thread = self.task_thread_manager.start_device_task(
+                            device_serial=device_info.device_serial,
+                            task_name="ocrNovel",
+                            task_params=ocr_novel_params[device_info.device_serial],
+                        )
+                        if task_thread:
+                            # 连接任务线程的信号
+                            # task_thread.user_data_updated.connect(self._on_user_data_updated)
+                            # task_thread.execution_stopped.connect(self._stop_device_tasks)
+                            #
+                            # self.is_task_running = True
+                            # self._update_task_button_state()
+                            # self.task_status_changed.emit(self.device_serial, True)
+                            self.logger.info("任务启动成功")
+                        else:
+                            self.logger.info("任务启动失败")
+                    else:
+                        self.logger.warning(f"设备 {device_info.name} ({device_info.device_serial}) 余额不足 {novel_info.chapter_default_price}，跳过该设备")
+
+                # 判断是否存在有效识别设备
+                if not ocr_novel_params:
+                    self.logger.warning("没有可用的设备进行识别")
+                    QMessageBox.warning(self, "提示", "没有可用的设备进行识别")
+                    return
+                success = self.novel_manager.start_recognize(name)
 
 
         except Exception as e:
@@ -201,6 +269,7 @@ class NovelTab(QWidget):
                 start_chapter = int(dialog.start_chapter_edit.text() or "1")
                 end_chapter = int(dialog.end_chapter_edit.text() or "9999")
                 current_chapter = int(dialog.current_chapter_edit.text() or "1")
+                chapter_default_price = int(dialog.chapter_default_price_edit.text() or "15")  # 获取默认价格
 
                 # 解析已完成章节列表
                 complete_chapter_str = dialog.complete_chapter_edit.text()
@@ -216,8 +285,8 @@ class NovelTab(QWidget):
                 if new_name != novel.name:
                     # 先删除旧的小说，再添加新的
                     self.novel_manager.remove_novel(novel.name)
-                    # 注意：这里需要传递所有参数给add_novel方法
-                    self.novel_manager.add_novel(new_name, start_chapter, end_chapter)
+                    # 注意：这里需要传递所有参数给add_novel_with_price方法
+                    self.novel_manager.add_novel_with_price(new_name, start_chapter, end_chapter, chapter_default_price)
                     # 更新新添加的小说的额外字段
                     new_novel = None
                     for n in self.novel_manager.get_all_novels():
@@ -234,6 +303,7 @@ class NovelTab(QWidget):
                     novel.end_chapter = end_chapter
                     novel.current_chapter = current_chapter
                     novel.complete_chapter = complete_chapter
+                    novel.chapter_default_price = chapter_default_price  # 更新默认价格
                     self.novel_manager.save_novels()
 
                 self.refresh_novel_list()
@@ -278,10 +348,12 @@ class AddNovelDialog(QDialog):
         self.name_edit = QLineEdit()
         self.start_chapter_edit = QLineEdit("1")
         self.end_chapter_edit = QLineEdit("9999")
+        self.chapter_default_price_edit = QLineEdit("15")  # 添加默认价格输入框
 
         layout.addRow("小说名称:", self.name_edit)
         layout.addRow("起始章节:", self.start_chapter_edit)
         layout.addRow("结束章节:", self.end_chapter_edit)
+        layout.addRow("章节默认价格:", self.chapter_default_price_edit)  # 添加默认价格行
 
         # 按钮
         button_layout = QHBoxLayout()
@@ -317,12 +389,14 @@ class EditNovelDialog(QDialog):
         self.end_chapter_edit = QLineEdit(str(self.novel.end_chapter) if self.novel else "9999")
         self.current_chapter_edit = QLineEdit(str(self.novel.current_chapter) if self.novel else "1")
         self.complete_chapter_edit = QLineEdit(",".join(map(str, self.novel.complete_chapter)) if self.novel and self.novel.complete_chapter else "")
+        self.chapter_default_price_edit = QLineEdit(str(self.novel.chapter_default_price) if self.novel else "15")  # 添加默认价格输入框
 
         layout.addRow("小说名称:", self.name_edit)
         layout.addRow("起始章节:", self.start_chapter_edit)
         layout.addRow("结束章节:", self.end_chapter_edit)
         layout.addRow("当前章节:", self.current_chapter_edit)
         layout.addRow("已完成章节:", self.complete_chapter_edit)
+        layout.addRow("章节默认价格:", self.chapter_default_price_edit)  # 添加默认价格行
 
         # 按钮
         button_layout = QHBoxLayout()
