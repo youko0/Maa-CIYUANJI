@@ -5,7 +5,9 @@
 小说标签页模块
 包含小说管理和识别进度显示功能
 """
-from typing import Dict, List
+import json
+from pathlib import Path
+from typing import Dict, List, Any
 
 from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import (
@@ -124,6 +126,8 @@ class NovelTab(QWidget):
 
                 start_btn = QPushButton("开始识别")
                 start_btn.clicked.connect(lambda checked, name=novel.name: self.start_novel_recognize(name))
+                export_btn = QPushButton("导出TXT")
+                export_btn.clicked.connect(lambda checked, name=novel.name: self.export_novel(name))
 
                 toggle_btn = QPushButton("停用" if novel.is_active else "启用")
                 toggle_btn.clicked.connect(
@@ -141,6 +145,7 @@ class NovelTab(QWidget):
                 )
 
                 btn_layout.addWidget(start_btn)
+                btn_layout.addWidget(export_btn)
                 btn_layout.addWidget(toggle_btn)
                 btn_layout.addWidget(edit_btn)
                 btn_layout.addWidget(delete_btn)
@@ -226,6 +231,79 @@ class NovelTab(QWidget):
 
         except Exception as e:
             self.logger.error(f"开始识别小说失败: {e}")
+
+    def export_novel(self, name: str):
+        """导出小说"""
+        try:
+            # 判断文件夹是否存在
+            novels_path = Path(f"configs/novels/{name}")
+            if not novels_path.exists():
+                self.logger.error(f"本地不存在{name}小说识别记录")
+                return
+            # 识别目录下是否存在有效文件
+            if not novels_path.glob("*.json"):
+                self.logger.error(f"本地不存在{name}小说章节识别记录")
+                return
+            # 异步执行导出任务
+            self._execute_export_novel(name, novels_path)
+
+            # ocr_novel_params = {
+            #     "novel_name": name,
+            # }
+            # task_thread = self.task_thread_manager.start_device_task(
+            #     device_serial="export_novel_" + name,
+            #     task_name="exportNovel",
+            #     task_params=ocr_novel_params,
+            # )
+            # if task_thread:
+            #     # 连接任务线程的信号
+            #     # task_thread.user_data_updated.connect(self._on_user_data_updated)
+            #     # task_thread.execution_stopped.connect(self._stop_device_tasks)
+            #     #
+            #     # self.is_task_running = True
+            #     # self._update_task_button_state()
+            #     # self.task_status_changed.emit(self.device_serial, True)
+            #     self.logger.info("任务启动成功")
+            # else:
+            #     self.logger.info("任务启动失败")
+            self.logger.info(f"导出《{name}》小说完成")
+
+        except Exception as e:
+            self.logger.error(f"导出《{name}》小说失败: {e}")
+
+    def _execute_export_novel(self, name: str, novels_path):
+        """执行导出小说"""
+        # 创建导出文件
+        export_file_path = Path(f"configs/novels/{name}.txt")
+        # export_file_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # 清空或创建新文件
+        export_file_path.write_text("", encoding='utf-8')
+
+        # 获取novels_path目录下所有json文件，按照文件名升序
+        json_file_list = sorted(novels_path.glob("*.json"))
+        for json_file in json_file_list:
+            # 读取小说内容
+            novel_chapter_obj = self._load_json_file(json_file)
+            # 追加到导出文件
+            with open(export_file_path, 'a', encoding='utf-8') as f:
+                f.write(novel_chapter_obj["content"] + "\n\n")
+
+    def _load_json_file(self, file_path: Path) -> Dict[str, Any]:
+        """加载JSON文件"""
+        if not file_path.exists():
+            # 创建空的配置文件
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(file_path, 'w', encoding='utf-8') as f:
+                json.dump({}, f, ensure_ascii=False, indent=2)
+            return {}
+
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            self.logger.error(f"加载配置文件 {file_path} 失败: {e}")
+            return {}
 
     def toggle_novel_status(self, name: str):
         """切换小说状态"""

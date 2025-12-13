@@ -232,10 +232,10 @@ class NovelLogic:
             # 确保配置目录存在
             novels_chapter_path.parent.mkdir(parents=True, exist_ok=True)
             novel_chapter_obj = {
-                "chapter_num": chapter_num,
-                "chapter_name": chapter_name,
-                "chapter_price": chapter_price,
-                "chapter_content": novel_chapter_content,
+                "num": chapter_num,
+                "name": chapter_name,
+                "price": chapter_price,
+                "content": novel_chapter_content,
             }
             try:
                 with open(novels_chapter_path, 'w', encoding='utf-8') as f:
