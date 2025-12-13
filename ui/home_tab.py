@@ -214,10 +214,10 @@ class HomeTab(QWidget):
         except Exception as e:
             self.logger.error(f"刷新设备列表失败: {e}")
 
-    def toggle_device_connection(self, address: str):
+    def toggle_device_connection(self, device_serial: str):
         """切换设备连接状态"""
         try:
-            pass
+            self.maa_manager.disconnect_device(device_serial)
             self.refresh_device_list()
         except Exception as e:
             self.logger.error(f"切换设备连接状态失败: {e}")
