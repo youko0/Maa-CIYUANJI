@@ -10,15 +10,12 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import List
 
-from maa.define import TaskDetail, OCRResult
-
-from core.balance_manager import BalanceInfo
 from core.maa_manager import get_maa_manager
+from core.novel_manager import get_novel_manager
 from modules.game_logger import GameLoggerFactory
 from utils.maafw_utils import find_element_by_swipe
 from utils.math_utils import MathUtils
 from utils.random_utils import RandomUtils
-from utils.time_utils import TimeUtils
 
 
 class NovelLogic:
@@ -30,6 +27,7 @@ class NovelLogic:
     def __init__(self, device_serial):
         self.device_serial = device_serial
         self.maa_manager = get_maa_manager()
+        self.novel_manager = get_novel_manager()
         self.tasker = self.maa_manager.get_device_tasker(device_serial)
         self.logger = GameLoggerFactory.get_logger(device_serial)
 
@@ -123,8 +121,10 @@ class NovelLogic:
         if result_succeeded is False:
             self.logger.error(f"[小说识别]没有找到目录按钮")
             return False
+        time.sleep(0.6)
         # 开始滑动识别章节
         chapter_name = MathUtils.pad_zero(chapter_list[0], 3)
+
         find_element = find_element_by_swipe(
             tasker=self.tasker,
             swipe_start_point=[252, 1232],
@@ -184,7 +184,10 @@ class NovelLogic:
 
     def _execute_ocr_novel_chapter_content(self, novel_name, chapter_list: List):
         """执行小说章节内容识别（调用该方法时，确保已经进入阅读状态，且为开始识别的第一章）"""
-        for i in range(len(chapter_list)):
+        # 循环次数
+        current_loop_num = 0
+        i = 0
+        while i < len(chapter_list):
             chapter_num = chapter_list[i]
             # 识别当前章节价格
             chapter_price = 0
@@ -204,12 +207,17 @@ class NovelLogic:
                 self.logger.debug(f"[小说识别]没有识别到{chapter_num}章章节价格，可能为免费章节，直接进行识别")
 
             # 识别章节名
-            chapter_name = f"{chapter_num}"
+            chapter_name = ""
             ocr_result = self.tasker.post_task("ocrNovelChapterName").wait().get()
             if ocr_result.status.succeeded:
                 chapter_name = ocr_result.nodes[0].recognition.best_result.text
+                # 判断当前章节是否为正常章节（排除通知类章节）
+                if chapter_name.find(str(chapter_num)) == -1:
+                    self.logger.info(f"[小说识别]识别到{chapter_num}章章节名： {chapter_name}，可能为通知类章节，当前章节不计入识别章节数")
+                    i = i - 1
             else:
                 self.logger.info(f"[小说识别]没有识别到{chapter_num}章章节名")
+                chapter_name = f"未知章节{chapter_name}"
 
             # 识别当前章节页码
             page_num = 1
@@ -234,7 +242,8 @@ class NovelLogic:
                 "name": chapter_name,
                 "price": chapter_price,
                 "content": novel_chapter_content,
-                "device_serial": self.device_serial
+                "device_serial": self.device_serial,
+                "device_name": self.maa_manager.get_device_name(self.device_serial),
             }
             try:
                 with open(novels_chapter_path, 'w', encoding='utf-8') as f:
@@ -242,6 +251,15 @@ class NovelLogic:
                 self.logger.info(f"[小说识别]保存{chapter_name}章内容成功")
             except Exception as e:
                 self.logger.error(f"保存{chapter_name}章内容失败: {e}")
+            # 将当前章节页码保存到配置文件中
+            self.novel_manager.add_complete_chapter(novel_name, chapter_num)
+            i = i + 1
+            current_loop_num = current_loop_num + 1
+            # 重置当前进度
+            self.novel_manager.reset_progress(novel_name)
+            if current_loop_num > len(chapter_list) * 2:
+                self.logger.info(f"[小说识别]已识别{current_loop_num}章，大于{len(chapter_list) * 2}章，中断识别")
+                break
 
     def _execute_ocr_novel_chapter_content_fun(self, chapter_num, page_num):
         """识别小说内容方法"""

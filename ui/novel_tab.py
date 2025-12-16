@@ -221,13 +221,6 @@ class NovelTab(QWidget):
                     else:
                         self.logger.warning(f"设备 {device_info.name} ({device_info.device_serial}) 余额不足 {novel_info.chapter_default_price}，跳过该设备")
 
-                # 判断是否存在有效识别设备
-                if not ocr_novel_params:
-                    self.logger.warning("没有可用的设备进行识别")
-                    QMessageBox.warning(self, "提示", "没有可用的设备进行识别")
-                    return
-                success = self.novel_manager.start_recognize(name)
-
 
         except Exception as e:
             self.logger.error(f"开始识别小说失败: {e}")
@@ -280,8 +273,10 @@ class NovelTab(QWidget):
         # 清空或创建新文件
         export_file_path.write_text("", encoding='utf-8')
 
-        # 获取novels_path目录下所有json文件，按照文件名升序
-        json_file_list = sorted(novels_path.glob("*.json"))
+        # 获取novels_path目录下所有json文件，按照文件名数字升序排序
+        json_files = list(novels_path.glob("*.json"))
+        # 使用自定义排序键，按文件名中的数字排序
+        json_file_list = sorted(json_files, key=lambda x: int(x.stem))
         for json_file in json_file_list:
             # 读取小说内容
             novel_chapter_obj = self._load_json_file(json_file)
@@ -405,7 +400,7 @@ class NovelTab(QWidget):
     def closeEvent(self, event: QCloseEvent):
         """窗口关闭事件"""
         # self.maa_manager.save_device_infos()
-        pass
+        self.novel_manager.save_novels()
 
 
 class AddNovelDialog(QDialog):

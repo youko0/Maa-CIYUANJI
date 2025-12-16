@@ -269,6 +269,22 @@ class MaaFrameworkManager(QObject):
         """
         return self.device_infos.get(device_serial)
 
+    def get_device_name(self, device_serial: str) -> str:
+        """
+        获取设备对应的DeviceInfo实例
+
+        Args:
+            device_serial: 设备序列号
+
+        Returns:
+            设备对应的DeviceInfo实例
+        """
+        device_info = self.device_infos.get(device_serial)
+        device_name = "未知设备"
+        if device_info:
+            device_name = device_info.name
+        return device_name
+
     def get_all_device_info_list(self) -> List[DeviceInfo]:
         """
         获取所有的设备信息列表

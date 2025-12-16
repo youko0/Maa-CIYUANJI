@@ -38,6 +38,32 @@ class NovelInfo:
         self.is_active = is_active  # 是否启用
         self.progress = progress  # 识别进度百分比
 
+    def reset_progress(self):
+        """重置进度"""
+        if self.complete_chapter:
+            self.progress = 0.0
+            # # 对complete_chapter进行升序排序
+            # self.complete_chapter.sort()
+            # 根据current_chapter和complete_chapter，计算出最新的current_chapter值
+            current_chapter_num = self.current_chapter
+
+            # 修复：避免在遍历时直接修改列表
+            # 创建一个副本用于遍历，收集需要移除的元素
+            chapters_to_remove = []
+            max_complete_chapter = max(self.complete_chapter)
+
+            for i in range(max_complete_chapter):
+                current_chapter_num = current_chapter_num + 1
+                if current_chapter_num in self.complete_chapter:
+                    chapters_to_remove.append(current_chapter_num)
+                else:
+                    break
+
+            # 遍历完成后，再移除需要移除的元素
+            for chapter_num in chapters_to_remove:
+                self.complete_chapter.remove(chapter_num)
+            self.current_chapter = current_chapter_num
+
     def to_dict(self) -> dict:
         """转换为字典"""
         return {
@@ -236,27 +262,15 @@ class NovelManager:
         """获取指定小说"""
         return self.novels.get(name)
 
-    def start_recognize(self, name: str) -> bool:
-        """开始识别指定小说"""
-        try:
-            if name not in self.novels:
-                self.logger.warning(f"小说 {name} 不存在")
-                return False
+    def reset_progress(self, novel_name):
+        """重置进度"""
+        novel_info = self.novels.get(novel_name)
+        novel_info.reset_progress()
 
-            novel = self.novels[name]
-            if not novel.is_active:
-                self.logger.warning(f"小说 {name} 已停用")
-                return False
-
-            # 更新识别时间
-            novel.last_recognize_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            self.save_novels()
-
-            self.logger.info(f"开始识别小说 {name}")
-            return True
-        except Exception as e:
-            self.logger.error(f"开始识别小说 {name} 失败: {e}")
-            return False
+    def add_complete_chapter(self, novel_name: str, chapter_num: int):
+        """添加已完成章节数"""
+        novel = self.get_novel(novel_name)
+        novel.complete_chapter.append(chapter_num)
 
     def save_chapter(self, novel_name: str, chapter_info: ChapterInfo) -> bool:
         """保存章节内容"""

@@ -8,18 +8,11 @@
 from typing import Dict
 
 from PySide6.QtWidgets import (
-    QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QTabWidget,
-    QPushButton, QLabel, QTableWidget, QTableWidgetItem, QHeaderView,
-    QMessageBox, QDialog, QLineEdit, QFormLayout, QTextEdit, QComboBox,
-    QProgressBar, QGroupBox, QApplication
+    QMainWindow, QWidget, QVBoxLayout, QTabWidget,
+    QMessageBox, QApplication
 )
-from PySide6.QtCore import Qt, QTimer, QRect, QStandardPaths
-from PySide6.QtGui import QAction, QScreen
-from maa.tasker import Tasker
+from PySide6.QtGui import QAction
 
-from core.balance_manager import BalanceManager, get_balance_manager
-from core.maa_manager import MaaFrameworkManager, get_maa_manager
-from core.novel_manager import NovelManager, get_novel_manager
 from ui.home_tab import HomeTab
 from ui.novel_tab import NovelTab
 from ui.balance_tab import BalanceTab
