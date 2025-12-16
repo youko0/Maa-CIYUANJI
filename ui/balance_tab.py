@@ -50,9 +50,9 @@ class BalanceTab(QWidget):
         device_coin_group = QGroupBox("各设备余额")
         device_coin_layout = QVBoxLayout(device_coin_group)
         self.device_table = QTableWidget()
-        self.device_table.setColumnCount(4)
+        self.device_table.setColumnCount(5)
         self.device_table.setHorizontalHeaderLabels([
-            "设备地址", "余额","最后签到时间", "最早过期时间"
+            "设备名称","设备地址", "余额","签到时间", "最早过期时间"
         ])
 
         header = self.device_table.horizontalHeader()
@@ -68,7 +68,7 @@ class BalanceTab(QWidget):
         device_coin_layout.addWidget(self.device_table)
 
         overview_layout.addWidget(total_coin_group, 1)
-        overview_layout.addWidget(device_coin_group, 2)
+        overview_layout.addWidget(device_coin_group, 6)
 
         # 代币使用记录区域
         record_group = QGroupBox("代币使用记录")
@@ -77,7 +77,7 @@ class BalanceTab(QWidget):
         self.record_table = QTableWidget()
         self.record_table.setColumnCount(5)
         self.record_table.setHorizontalHeaderLabels([
-            "设备地址", "小说名称", "章节名称", "使用数量", "时间"
+            "设备名称","设备地址", "小说名称", "章节名称", "使用数量", "时间"
         ])
         self.record_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         record_layout.addWidget(self.record_table)
@@ -102,14 +102,15 @@ class BalanceTab(QWidget):
             total_balance = 0
             for row, device_info in enumerate(device_info_list):
                 total_balance += device_info.balance
-                self.device_table.setItem(row, 0, QTableWidgetItem(device_info.device_serial))
-                self.device_table.setItem(row, 1, QTableWidgetItem(str(device_info.balance)))
-                self.device_table.setItem(row, 2, QTableWidgetItem(TimeUtils.format(device_info.last_sign_in_time, "%m-%d")))
+                self.device_table.setItem(row, 0, QTableWidgetItem(device_info.name))
+                self.device_table.setItem(row, 1, QTableWidgetItem(device_info.device_serial))
+                self.device_table.setItem(row, 2, QTableWidgetItem(str(device_info.balance)))
+                self.device_table.setItem(row, 3, QTableWidgetItem(TimeUtils.format(device_info.last_sign_in_time, "%m-%d")))
                 # 获取代币最早过期时间
                 device_balance_list = self.balance_manager.get_device_balance_list(device_info.device_serial)
                 # 获取device_balance_list中，expire_time最小值对象
                 balance_info = min(device_balance_list, key=lambda x: x.expire_time)
-                self.device_table.setItem(row, 3, QTableWidgetItem(TimeUtils.format(balance_info.expire_time, "%m-%d") + " 凌晨将过期 " + str(balance_info.balance) + "个代币"))
+                self.device_table.setItem(row, 4, QTableWidgetItem(TimeUtils.format(balance_info.expire_time, "%m-%d") + " 凌晨将过期 " + str(balance_info.balance) + "个代币"))
 
             self.total_coin_label.setText(str(total_balance))
 
