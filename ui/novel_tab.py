@@ -12,7 +12,7 @@ from typing import Dict, List, Any
 from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QTableWidget, QTableWidgetItem,
-    QTextEdit, QPushButton, QHeaderView, QDialog, QLineEdit, QFormLayout, QMessageBox
+    QTextEdit, QPushButton, QHeaderView, QDialog, QLineEdit, QFormLayout, QMessageBox, QCheckBox
 )
 
 from core.config_manager import get_config_manager
@@ -94,9 +94,10 @@ class NovelTab(QWidget):
             start_chapter = int(dialog.start_chapter_edit.text() or "1")
             end_chapter = int(dialog.end_chapter_edit.text() or "9999")
             chapter_default_price = int(dialog.chapter_default_price_edit.text() or "15")  # 获取默认价格
+            is_buy = dialog.is_buy_edit.isChecked()  # 获取是否购买
 
-            # 修改调用add_novel方法，传入chapter_default_price参数
-            success = self.novel_manager.add_novel_with_price(name, start_chapter, end_chapter, chapter_default_price)
+            # 修改调用add_novel方法，传入chapter_default_price和is_buy参数
+            success = self.novel_manager.add_novel_with_price_and_buy(name, start_chapter, end_chapter, chapter_default_price, is_buy)
             if success:
                 self.refresh_novel_list()
 
@@ -359,6 +360,7 @@ class NovelTab(QWidget):
                 end_chapter = int(dialog.end_chapter_edit.text() or "9999")
                 current_chapter = int(dialog.current_chapter_edit.text() or "1")
                 chapter_default_price = int(dialog.chapter_default_price_edit.text() or "15")  # 获取默认价格
+                is_buy = dialog.is_buy_edit.isChecked()  # 获取是否购买
 
                 # 解析已完成章节列表
                 complete_chapter_str = dialog.complete_chapter_edit.text()
@@ -374,8 +376,8 @@ class NovelTab(QWidget):
                 if new_name != novel.name:
                     # 先删除旧的小说，再添加新的
                     self.novel_manager.remove_novel(novel.name)
-                    # 注意：这里需要传递所有参数给add_novel_with_price方法
-                    self.novel_manager.add_novel_with_price(new_name, start_chapter, end_chapter, chapter_default_price)
+                    # 注意：这里需要传递所有参数给add_novel_with_price_and_buy方法
+                    self.novel_manager.add_novel_with_price_and_buy(new_name, start_chapter, end_chapter, chapter_default_price, is_buy)
                     # 更新新添加的小说的额外字段
                     new_novel = None
                     for n in self.novel_manager.get_all_novels():
@@ -393,6 +395,7 @@ class NovelTab(QWidget):
                     novel.current_chapter = current_chapter
                     novel.complete_chapter = complete_chapter
                     novel.chapter_default_price = chapter_default_price  # 更新默认价格
+                    novel.is_buy = is_buy  # 更新是否购买
                     self.novel_manager.save_novels()
 
                 self.refresh_novel_list()
@@ -438,11 +441,13 @@ class AddNovelDialog(QDialog):
         self.start_chapter_edit = QLineEdit("1")
         self.end_chapter_edit = QLineEdit("9999")
         self.chapter_default_price_edit = QLineEdit("15")  # 添加默认价格输入框
+        self.is_buy_edit = QCheckBox()  # 添加是否购买复选框
 
         layout.addRow("小说名称:", self.name_edit)
         layout.addRow("起始章节:", self.start_chapter_edit)
         layout.addRow("结束章节:", self.end_chapter_edit)
         layout.addRow("章节默认价格:", self.chapter_default_price_edit)  # 添加默认价格行
+        layout.addRow("是否订购章节:", self.is_buy_edit)  # 添加是否购买行
 
         # 按钮
         button_layout = QHBoxLayout()
@@ -479,6 +484,8 @@ class EditNovelDialog(QDialog):
         self.current_chapter_edit = QLineEdit(str(self.novel.current_chapter) if self.novel else "1")
         self.complete_chapter_edit = QLineEdit(",".join(map(str, self.novel.complete_chapter)) if self.novel and self.novel.complete_chapter else "")
         self.chapter_default_price_edit = QLineEdit(str(self.novel.chapter_default_price) if self.novel else "15")  # 添加默认价格输入框
+        self.is_buy_edit = QCheckBox()  # 添加是否购买复选框
+        self.is_buy_edit.setChecked(self.novel.is_buy if self.novel else False)
 
         layout.addRow("小说名称:", self.name_edit)
         layout.addRow("起始章节:", self.start_chapter_edit)
@@ -486,6 +493,7 @@ class EditNovelDialog(QDialog):
         layout.addRow("当前章节:", self.current_chapter_edit)
         layout.addRow("已完成章节:", self.complete_chapter_edit)
         layout.addRow("章节默认价格:", self.chapter_default_price_edit)  # 添加默认价格行
+        layout.addRow("是否订购章节:", self.is_buy_edit)  # 添加是否购买行
 
         # 按钮
         button_layout = QHBoxLayout()

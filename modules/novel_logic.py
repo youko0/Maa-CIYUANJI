@@ -195,12 +195,19 @@ class NovelLogic:
             chapter_price = 0
             ocr_result = self.tasker.post_task("ocrChapterPrice").wait().get()
             if ocr_result.status.succeeded:
-                best_result_text = ocr_result.nodes[0].recognition.best_result.text
+                best_result = ocr_result.nodes[0].recognition.best_result
+                best_result_text = best_result.text
                 if best_result_text.startswith("订阅本章:"):
                     # 处理识别结果，只保留价格数字，如：订阅本章:15书币
                     chapter_price = best_result_text.replace("订阅本章:", "").replace("书币", "")
-                    self.logger.info(f"[小说识别]识别到{chapter_num}章章节价格： {chapter_price}，执行订阅章节")
-                    # TODO执行订阅
+                    novel_info = self.novel_manager.get_novel(novel_name)
+                    if novel_info.is_buy:
+                        self.logger.info(f"[小说识别]识别到{chapter_num}章章节价格： {chapter_price}，执行订阅章节")
+                        self.tasker.controller.post_click(*RandomUtils.random_coordinates_in_box(best_result.box)).wait()
+                        time.sleep(0.5)
+                    else:
+                        self.logger.info(f"[小说识别]识别到{chapter_num}章章节价格： {chapter_price}，当前小说不进行订购章节")
+                        break
 
                 elif best_result_text.startswith("余额不足"):
                     self.logger.info(f"[小说识别]设备余额不足，结束识别")

@@ -24,6 +24,7 @@ class NovelInfo:
                  end_chapter: int = 9999,
                  current_chapter=1,
                  complete_chapter: List[int] = [],
+                 is_buy: bool = False,
                  chapter_default_price: int = 15,
                  last_recognize_time=None,
                  is_active=True,
@@ -33,6 +34,7 @@ class NovelInfo:
         self.end_chapter = end_chapter
         self.current_chapter = current_chapter
         self.complete_chapter: List[int] = complete_chapter  # 记录当前章节之后章节已经识别过的章节数
+        self.is_buy = is_buy
         self.chapter_default_price = chapter_default_price
         self.last_recognize_time: datetime = last_recognize_time  # 最后识别时间
         self.is_active = is_active  # 是否启用
@@ -75,6 +77,7 @@ class NovelInfo:
             "end_chapter": self.end_chapter,
             "current_chapter": self.current_chapter,
             "complete_chapter": self.complete_chapter,
+            "is_buy": self.is_buy,
             "chapter_default_price": self.chapter_default_price,
             "last_recognize_time": self.last_recognize_time,
             "is_active": self.is_active,
@@ -90,6 +93,7 @@ class NovelInfo:
             data.get("end_chapter", -1),
             data.get("current_chapter", 1),
             data.get("complete_chapter", []),
+            data.get("is_buy", False),
             data.get("chapter_default_price", 15),
             data.get("last_recognize_time"),
             data.get("is_active", True),
@@ -203,6 +207,27 @@ class NovelManager:
 
             self.save_novels()
             self.logger.info(f"添加小说 {name} 成功，章节默认价格: {chapter_default_price}")
+            return True
+        except Exception as e:
+            self.logger.error(f"添加小说 {name} 失败: {e}")
+            return False
+
+    def add_novel_with_price_and_buy(self, name: str, start_chapter: int = 1, end_chapter: int = 9999, chapter_default_price: int = 15, is_buy: bool = False) -> bool:
+        """添加新小说（支持章节默认价格和是否购买）"""
+        try:
+            if name in self.novels:
+                self.logger.warning(f"小说 {name} 已存在")
+                return False
+
+            novel = NovelInfo(name, start_chapter, end_chapter, chapter_default_price=chapter_default_price, is_buy=is_buy)
+            self.novels[name] = novel
+
+            # 创建小说目录
+            novel_dir = self.novels_dir / name
+            novel_dir.mkdir(exist_ok=True)
+
+            self.save_novels()
+            self.logger.info(f"添加小说 {name} 成功，章节默认价格: {chapter_default_price}, 是否购买: {is_buy}")
             return True
         except Exception as e:
             self.logger.error(f"添加小说 {name} 失败: {e}")
