@@ -181,6 +181,7 @@ class NovelTab(QWidget):
                     return
 
                 # 在选中的设备中进行识别
+                self.logger.info(f"开始在 {len(selected_devices)} 个设备上识别小说: {name}")
                 self.progress_text.append(f"开始在 {len(selected_devices)} 个设备上识别小说: {name}")
 
                 ocr_novel_params: Dict[str, any] = {}
@@ -193,13 +194,28 @@ class NovelTab(QWidget):
                         chapter_quantity = device_info.balance // novel_info.chapter_default_price
                     if chapter_quantity > 0:
                         chapter_list = []
-                        for i in range(chapter_quantity):
+                        i = 0
+                        while i < chapter_quantity:
                             current_chapter = current_chapter + 1
-                            chapter_list.append(current_chapter)
+                            # 判断当前章节是否已完成
+                            if current_chapter in novel_info.complete_chapter:
+                                if len(chapter_list) == 0:
+                                    i -= 1
+                                else:
+                                    current_chapter -= 1
+                                    break
+                            else:
+                                chapter_list.append(current_chapter)
+                            i += 1
+
+                        if len(chapter_list) == 0:
+                            self.logger.info(f"- 设备 {device_info.name} ({device_info.device_serial}) 无剩余章节可识别")
+                            continue
                         ocr_novel_params[device_info.device_serial] = {
                             "novel_name": name,
                             "chapter_list": chapter_list,
                         }
+                        self.logger.info(f"- 准备在设备 {device_info.name} ({device_info.device_serial}) 上进行识别 {name} 小说，分别识别 {chapter_list} 章节")
                         self.progress_text.append(f"- 准备在设备 {device_info.name} ({device_info.device_serial}) 上进行识别 {name} 小说，分别识别 {chapter_list} 章节")
                         # 获取当前小说进度，根据当前连接设备自动分配章节
                         task_thread = self.task_thread_manager.start_device_task(
@@ -269,14 +285,14 @@ class NovelTab(QWidget):
         # 创建导出文件
         export_file_path = Path(f"configs/novels/{name}.txt")
         # export_file_path.parent.mkdir(parents=True, exist_ok=True)
-        
+
         # 清空或创建新文件
         export_file_path.write_text("", encoding='utf-8')
 
         # 获取novels_path目录下所有json文件，按照文件名数字升序排序
         json_files = list(novels_path.glob("*.json"))
         # 使用自定义排序键，按文件名中的数字排序
-        json_file_list = sorted(json_files, key=lambda x: int(x.stem))
+        json_file_list = sorted(json_files, key=lambda x: float(x.stem))
         for json_file in json_file_list:
             # 读取小说内容
             novel_chapter_obj = self._load_json_file(json_file)

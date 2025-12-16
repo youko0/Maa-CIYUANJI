@@ -41,6 +41,7 @@ class NovelInfo:
     def reset_progress(self):
         """重置进度"""
         if self.complete_chapter:
+            print(f"重置进度开始: {self.name} {self.current_chapter} {self.complete_chapter}")
             self.progress = 0.0
             # # 对complete_chapter进行升序排序
             # self.complete_chapter.sort()
@@ -52,17 +53,19 @@ class NovelInfo:
             chapters_to_remove = []
             max_complete_chapter = max(self.complete_chapter)
 
-            for i in range(max_complete_chapter):
+            for i in range(len(self.complete_chapter)):
                 current_chapter_num = current_chapter_num + 1
                 if current_chapter_num in self.complete_chapter:
                     chapters_to_remove.append(current_chapter_num)
                 else:
+                    current_chapter_num -= 1
                     break
 
             # 遍历完成后，再移除需要移除的元素
             for chapter_num in chapters_to_remove:
                 self.complete_chapter.remove(chapter_num)
             self.current_chapter = current_chapter_num
+            print(f"重置进度结束: {self.name} {self.current_chapter} {self.complete_chapter}")
 
     def to_dict(self) -> dict:
         """转换为字典"""

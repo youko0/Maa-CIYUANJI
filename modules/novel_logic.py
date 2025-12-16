@@ -187,6 +187,8 @@ class NovelLogic:
         # 循环次数
         current_loop_num = 0
         i = 0
+        # 通知类章节序号（小数点）
+        chapter_notice_num = 0
         while i < len(chapter_list):
             chapter_num = chapter_list[i]
             # 识别当前章节价格
@@ -215,6 +217,10 @@ class NovelLogic:
                 if chapter_name.find(str(chapter_num)) == -1:
                     self.logger.info(f"[小说识别]识别到{chapter_num}章章节名： {chapter_name}，可能为通知类章节，当前章节不计入识别章节数")
                     i = i - 1
+                    chapter_notice_num += 1
+                    chapter_num = float(f"{chapter_num - 1}.{chapter_notice_num}")
+                else:
+                    chapter_notice_num = 0
             else:
                 self.logger.info(f"[小说识别]没有识别到{chapter_num}章章节名")
                 chapter_name = f"未知章节{chapter_name}"
@@ -230,6 +236,7 @@ class NovelLogic:
                 current_page_num = int(page_num_arr[0])
             else:
                 self.logger.info(f"[小说识别]没有识别到{chapter_name}章章节页码，章节可能尚未解锁")
+                break
 
             # 识别小说内容
             novel_chapter_content = self._execute_ocr_novel_chapter_content_fun(chapter_num, page_num)
@@ -252,11 +259,12 @@ class NovelLogic:
             except Exception as e:
                 self.logger.error(f"保存{chapter_name}章内容失败: {e}")
             # 将当前章节页码保存到配置文件中
-            self.novel_manager.add_complete_chapter(novel_name, chapter_num)
+            if type(chapter_num) == int:
+                self.novel_manager.add_complete_chapter(novel_name, chapter_num)
+                # 重置当前进度
+                self.novel_manager.reset_progress(novel_name)
             i = i + 1
             current_loop_num = current_loop_num + 1
-            # 重置当前进度
-            self.novel_manager.reset_progress(novel_name)
             if current_loop_num > len(chapter_list) * 2:
                 self.logger.info(f"[小说识别]已识别{current_loop_num}章，大于{len(chapter_list) * 2}章，中断识别")
                 break
