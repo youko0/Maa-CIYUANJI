@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import List
 
+from core.balance_manager import get_balance_manager
 from core.maa_manager import get_maa_manager
 from core.novel_manager import get_novel_manager
 from modules.game_logger import GameLoggerFactory
@@ -28,6 +29,7 @@ class NovelLogic:
         self.device_serial = device_serial
         self.maa_manager = get_maa_manager()
         self.novel_manager = get_novel_manager()
+        self.balance_manager = get_balance_manager()
         self.tasker = self.maa_manager.get_device_tasker(device_serial)
         self.logger = GameLoggerFactory.get_logger(device_serial)
 
@@ -184,6 +186,7 @@ class NovelLogic:
 
     def _execute_ocr_novel_chapter_content(self, novel_name, chapter_list: List):
         """执行小说章节内容识别（调用该方法时，确保已经进入阅读状态，且为开始识别的第一章）"""
+        is_close_auto_buy = False  # 是否关闭了自动购买
         # 循环次数
         current_loop_num = 0
         i = 0
@@ -199,11 +202,21 @@ class NovelLogic:
                 best_result_text = best_result.text
                 if best_result_text.startswith("订阅本章:"):
                     # 处理识别结果，只保留价格数字，如：订阅本章:15书币
-                    chapter_price = best_result_text.replace("订阅本章:", "").replace("书币", "")
+                    chapter_price = int(best_result_text.replace("订阅本章:", "").replace("书币", ""))
                     novel_info = self.novel_manager.get_novel(novel_name)
+                    # 关闭自动购买（显示章节需要购买时，自动订阅下一章是选中状态）
+                    if is_close_auto_buy is False:
+                        ocr_auto_buy_result = self.tasker.post_task("ocrChapterAutoBuyStatus").wait().get()
+                        if ocr_auto_buy_result.status.succeeded:
+                            self.logger.info(f"[小说识别]识别到自动订阅下一章为选中状态，点击关闭")
+                            self.tasker.controller.post_click(*RandomUtils.random_coordinates_in_box(ocr_auto_buy_result.nodes[0].recognition.best_result.box)).wait()
+                        else:
+                            self.logger.info(f"[小说识别]没有识别到自动订阅下一章状态")
+
                     if novel_info.is_buy:
                         self.logger.info(f"[小说识别]识别到{chapter_num}章章节价格： {chapter_price}，执行订阅章节")
                         self.tasker.controller.post_click(*RandomUtils.random_coordinates_in_box(best_result.box)).wait()
+                        self.balance_manager.consume_coins(self.device_serial, novel_name, str(chapter_num), chapter_price)
                         time.sleep(0.5)
                     else:
                         self.logger.info(f"[小说识别]识别到{chapter_num}章章节价格： {chapter_price}，当前小说不进行订购章节")

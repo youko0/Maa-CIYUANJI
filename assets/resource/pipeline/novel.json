@@ -114,5 +114,16 @@
     ],
     "timeout": 1200,
     "describe": "识别章节价格，考虑到有些非付费章节，需要自己提取价格"
+  },
+  "ocrChapterAutoBuyStatus": {
+    "recognition": "ColorMatch",
+    "method": 4,
+    "roi": [424, 888, 286, 86],
+    "upper": [218, 85, 105],
+    "lower": [218, 85, 105],
+    "timeout": 1200,
+    "count": 450,
+    "connected": true,
+    "describe": "判断本页是否存在已过期的明细"
   }
 }

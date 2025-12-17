@@ -64,7 +64,7 @@ class BalanceTab(QWidget):
         # 启用表格排序功能
         self.device_table.setSortingEnabled(True)
         # 设置默认按照"下次执行时间"列升序排序（列索引为1）
-        self.device_table.sortByColumn(3, Qt.SortOrder.AscendingOrder)
+        self.device_table.sortByColumn(4, Qt.SortOrder.AscendingOrder)
         device_coin_layout.addWidget(self.device_table)
 
         overview_layout.addWidget(total_coin_group, 1)
