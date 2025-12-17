@@ -98,7 +98,11 @@ class BalanceTab(QWidget):
         try:
             # 刷新总余额
             device_info_list = self.maa_manager.get_all_device_info_list()
+            
+            # 清空表格
+            self.device_table.clearContents()
             self.device_table.setRowCount(len(device_info_list))
+            
             total_balance = 0
             for row, device_info in enumerate(device_info_list):
                 total_balance += device_info.balance
@@ -109,8 +113,11 @@ class BalanceTab(QWidget):
                 # 获取代币最早过期时间
                 device_balance_list = self.balance_manager.get_device_balance_list(device_info.device_serial)
                 # 获取device_balance_list中，expire_time最小值对象
-                balance_info = min(device_balance_list, key=lambda x: x.expire_time)
-                self.device_table.setItem(row, 4, QTableWidgetItem(TimeUtils.format(balance_info.expire_time, "%m-%d") + " 凌晨将过期 " + str(balance_info.balance) + "个代币"))
+                if device_balance_list:  # 确保列表不为空
+                    balance_info = min(device_balance_list, key=lambda x: x.expire_time)
+                    self.device_table.setItem(row, 4, QTableWidgetItem(TimeUtils.format(balance_info.expire_time, "%m-%d") + " 凌晨将过期 " + str(balance_info.balance) + "个代币"))
+                else:
+                    self.device_table.setItem(row, 4, QTableWidgetItem("无代币信息"))
 
             self.total_coin_label.setText(str(total_balance))
 
