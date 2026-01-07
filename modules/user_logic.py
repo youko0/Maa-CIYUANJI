@@ -29,6 +29,13 @@ class UserLogic:
         self.logger = GameLoggerFactory.get_logger(device_serial)
         self.user_data_updated = user_data_updated
 
+    def launch_app(self):
+        """启动app"""
+        self.tasker.controller.post_start_app("com.xunyou.rb").wait()
+        time.sleep(1)
+        self.tasker.post_task("existAndClickSkipBtn").wait()
+
+
     def sign_in(self, is_user_data_updated=False):
         """签到"""
         result_succeeded = self.tasker.post_task("existsAndClickUser").wait().succeeded
@@ -65,7 +72,7 @@ class UserLogic:
         if self.tasker.post_task("existsSignInSuccessTip").wait().succeeded:
             self.logger.info('签到成功，识别代币数量')
             result = self.tasker.post_task("ocrSignInCoinNum").wait().get()
-            if result and result.nodes and len(result.nodes) > 0:
+            if result.status.succeeded:
                 coin_num_str = result.nodes[0].recognition.best_result.text
                 # 添加代币（模拟签到获得5个代币）
                 expire_time = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=7)
@@ -102,7 +109,7 @@ class UserLogic:
         # 识别代币总数量
         total_coin_num = 0
         result = self.tasker.post_task("ocrTotalCoinNum").wait().get()
-        if result and result.nodes and len(result.nodes) > 0:
+        if result.status.succeeded:
             coin_num_str = result.nodes[0].recognition.best_result.text
             total_coin_num = int(coin_num_str)
             self.logger.info(f"[刷新余额]识别到设备代币总余额：{coin_num_str}")
@@ -143,7 +150,7 @@ class UserLogic:
         balance_info_list = []
         while True:
             find_goods_list_result = self.tasker.post_task("ocrCoinDetails").wait().get()
-            if find_goods_list_result and len(find_goods_list_result.nodes) > 0:
+            if find_goods_list_result.status.succeeded:
                 ocr_result_list = find_goods_list_result.nodes[0].recognition.filtered_results
                 balance_infos = self.parse_ocr_to_balance_info(ocr_result_list, device_serial)
                 # 求balance_infos较balance_info_list的差集
@@ -218,10 +225,10 @@ class UserLogic:
                         # 处理日期格式问题，添加空格分隔符
                         if "00:00:00" in expire_time_str and " 00:00:00" not in expire_time_str:
                             expire_time_str = expire_time_str.replace("00:00:00", " 00:00:00")
-                        
+
                         # 清除首尾空白字符
                         expire_time_str = expire_time_str.strip()
-                        
+
                         # 检查过期时间是否为空
                         if expire_time_str:
                             # 将日志转换为datetime类型

@@ -224,61 +224,6 @@ class BalanceManager:
             self.logger.error(f"获取设备 {device_serial} 最近代币过期时间失败: {e}")
             return None
 
-    def consume_coins(self, device_serial: str, novel_name: str, chapter_name: str,
-                      amount: int) -> bool:
-        """消耗代币购买章节"""
-        try:
-            # 获取设备代币
-            coins = self.get_device_balance_list(device_serial)
-            if not coins:
-                self.logger.warning(f"设备 {device_serial} 没有可用代币")
-                return False
-
-            # 按过期时间排序（优先使用即将过期的代币）
-            coins.sort(key=lambda x: datetime.strptime(x.expire_time, "%Y-%m-%d %H:%M:%S"))
-
-            # 计算总余额是否足够
-            total_balance = sum(coin.balance for coin in coins)
-            if total_balance < amount:
-                self.logger.warning(f"设备 {device_serial} 代币余额不足，需要: {amount}，现有: {total_balance}")
-                return False
-
-            # 消耗代币
-            remaining_amount = amount
-            for coin in coins:
-                if remaining_amount <= 0:
-                    break
-
-                if coin.balance > 0:
-                    if coin.balance >= remaining_amount:
-                        # 当前代币余额足够支付
-                        coin.balance -= remaining_amount
-                        remaining_amount = 0
-                    else:
-                        # 当前代币余额不足，全部扣除
-                        remaining_amount -= coin.balance
-                        coin.balance = 0
-
-            # 保存更新后的代币信息
-            self._save_device_coins(device_serial, coins)
-
-            # 记录使用情况
-            record = BalanceRecord(
-                device_serial=device_serial,
-                novel_name=novel_name,
-                chapter_name=chapter_name,
-                coins_used=amount,
-                timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            )
-            self.records.append(record)
-            self.save_records()
-
-            self.logger.info(f"设备 {device_serial} 成功消耗 {amount} 个代币购买小说 {novel_name} 章节 {chapter_name}")
-            return True
-        except Exception as e:
-            self.logger.error(f"设备 {device_serial} 消耗代币失败: {e}")
-            return False
-
     def get_records_by_device(self, device_serial: str) -> List[BalanceRecord]:
         """获取指定设备的代币使用记录"""
         try:

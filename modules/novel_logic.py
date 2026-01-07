@@ -167,7 +167,7 @@ class NovelLogic:
         time.sleep(0.6)
         # 加入书架
         ocr_status_result = self.tasker.post_task("ocrNovelBookshelfStatus").wait().get()
-        if ocr_status_result and ocr_status_result.nodes and len(ocr_status_result.nodes) > 0:
+        if ocr_status_result.status.succeeded:
             best_result = ocr_status_result.nodes[0].recognition.best_result
             status_text = best_result.text
             if status_text == "加入书架":
@@ -209,6 +209,7 @@ class NovelLogic:
                         ocr_auto_buy_result = self.tasker.post_task("ocrChapterAutoBuyStatus").wait().get()
                         if ocr_auto_buy_result.status.succeeded:
                             self.logger.info(f"[小说识别]识别到自动订阅下一章为选中状态，点击关闭")
+                            is_close_auto_buy = True
                             self.tasker.controller.post_click(*RandomUtils.random_coordinates_in_box(ocr_auto_buy_result.nodes[0].recognition.best_result.box)).wait()
                         else:
                             self.logger.info(f"[小说识别]没有识别到自动订阅下一章状态")
@@ -216,8 +217,8 @@ class NovelLogic:
                     if novel_info.is_buy:
                         self.logger.info(f"[小说识别]识别到{chapter_num}章章节价格： {chapter_price}，执行订阅章节")
                         self.tasker.controller.post_click(*RandomUtils.random_coordinates_in_box(best_result.box)).wait()
-                        self.balance_manager.consume_coins(self.device_serial, novel_name, str(chapter_num), chapter_price)
-                        time.sleep(0.5)
+                        self.maa_manager.consume_coins(self.device_serial, novel_name, str(chapter_num), chapter_price)
+                        time.sleep(3)
                     else:
                         self.logger.info(f"[小说识别]识别到{chapter_num}章章节价格： {chapter_price}，当前小说不进行订购章节")
                         break
@@ -251,9 +252,10 @@ class NovelLogic:
             ocr_result = self.tasker.post_task("ocrChapterContentPageNum").wait().get()
             if ocr_result.status.succeeded:
                 best_result_text = ocr_result.nodes[0].recognition.best_result.text
-                page_num_arr = best_result_text.split("/")
-                page_num = int(page_num_arr[1])
-                current_page_num = int(page_num_arr[0])
+                if "/" in best_result_text:
+                    page_num_arr = best_result_text.split("/")
+                    page_num = int(page_num_arr[1])
+                    current_page_num = int(page_num_arr[0])
             else:
                 self.logger.info(f"[小说识别]没有识别到{chapter_name}章章节页码，章节可能尚未解锁")
                 break

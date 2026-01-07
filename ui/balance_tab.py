@@ -75,7 +75,7 @@ class BalanceTab(QWidget):
         record_layout = QVBoxLayout(record_group)
 
         self.record_table = QTableWidget()
-        self.record_table.setColumnCount(5)
+        self.record_table.setColumnCount(6)
         self.record_table.setHorizontalHeaderLabels([
             "设备名称","设备地址", "小说名称", "章节名称", "使用数量", "时间"
         ])
@@ -133,11 +133,12 @@ class BalanceTab(QWidget):
             self.record_table.setRowCount(len(records))
 
             for row, record in enumerate(records):
-                self.record_table.setItem(row, 0, QTableWidgetItem(record.device_address))
-                self.record_table.setItem(row, 1, QTableWidgetItem(record.novel_name))
-                self.record_table.setItem(row, 2, QTableWidgetItem(record.chapter_name))
-                self.record_table.setItem(row, 3, QTableWidgetItem(str(record.coins_used)))
-                self.record_table.setItem(row, 4, QTableWidgetItem(record.timestamp))
+                self.record_table.setItem(row, 0, QTableWidgetItem(self.maa_manager.get_device_name(record.device_serial)))
+                self.record_table.setItem(row, 1, QTableWidgetItem(record.device_serial))
+                self.record_table.setItem(row, 2, QTableWidgetItem(record.novel_name))
+                self.record_table.setItem(row, 3, QTableWidgetItem(record.chapter_name))
+                self.record_table.setItem(row, 4, QTableWidgetItem(str(record.coins_used)))
+                self.record_table.setItem(row, 5, QTableWidgetItem(record.timestamp))
         except Exception as e:
             self.logger.error(f"刷新代币使用记录失败: {e}")
 

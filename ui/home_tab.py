@@ -65,6 +65,9 @@ class HomeTab(QWidget):
         self.one_click_connect_device_btn = QPushButton("一键连接设备")
         self.one_click_connect_device_btn.clicked.connect(self.one_click_connect_device)
         device_btn_layout.addWidget(self.one_click_connect_device_btn)
+        self.one_click_launch_app_btn = QPushButton("一键启动APP")
+        self.one_click_launch_app_btn.clicked.connect(self.one_click_launch_app)
+        device_btn_layout.addWidget(self.one_click_launch_app_btn)
         self.one_click_check_in_btn = QPushButton("一键签到")
         self.one_click_check_in_btn.clicked.connect(self.one_click_check_in)
         device_btn_layout.addWidget(self.one_click_check_in_btn)
@@ -244,6 +247,12 @@ class HomeTab(QWidget):
             self.logger.info("任务启动成功")
         else:
             self.logger.info("任务启动失败")
+
+    def one_click_launch_app(self):
+        """一键启动APP"""
+        device_serial_list = self.maa_manager.get_connected_device_serial_list()
+        for device_serial in device_serial_list:
+            self.start_device_task(device_serial, "launchApp")
 
     def one_click_check_in(self):
         """一键签到"""

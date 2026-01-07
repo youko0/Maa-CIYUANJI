@@ -19,7 +19,7 @@ from maa.toolkit import Toolkit, AdbDevice
 from maa.resource import Resource
 from maa.controller import AdbController
 
-from core.balance_manager import get_balance_manager, BalanceInfo
+from core.balance_manager import get_balance_manager, BalanceInfo, BalanceRecord
 from core.config_manager import get_config_manager
 from core.domain.device_info import DeviceInfo
 
@@ -182,6 +182,7 @@ class MaaFrameworkManager(QObject):
 
             # 创建任务器实例
             tasker = Tasker()
+            tasker.set_save_on_error(False)
 
             # 绑定资源和控制器到任务器
             tasker.bind(self.resource, controller)
@@ -392,6 +393,64 @@ class MaaFrameworkManager(QObject):
         self.logger.info(f"设备 {device_serial} 初始化完成")
         device_info = self.get_device_info(device_serial)
         device_info.is_initialized = True
+
+    def consume_coins(self, device_serial: str, novel_name: str, chapter_name: str,
+                      amount: int) -> bool:
+        """消耗代币购买章节"""
+        try:
+            # 获取设备代币记录
+            device_balance_list = self.balance_manager.get_device_balance_list(device_serial)
+            if not device_balance_list:
+                self.logger.warning(f"设备 {device_serial} 没有可用代币")
+                return False
+
+            # 计算总余额是否足够
+            device_info = self.get_device_info(device_serial)
+            if device_info.balance < amount:
+                self.logger.warning(f"设备 {device_serial} 代币余额不足，需要: {amount}，现有: {device_info.balance}")
+                return False
+
+            # 按过期时间排序（优先使用即将过期的代币）
+            device_balance_list.sort(key=lambda x: x.expire_time)
+
+            # 消耗代币
+            remaining_amount = amount
+            for coin in device_balance_list:
+                if remaining_amount <= 0:
+                    break
+
+                if coin.balance > 0:
+                    if coin.balance >= remaining_amount:
+                        # 当前代币余额足够支付
+                        coin.balance -= remaining_amount
+                        remaining_amount = 0
+                    else:
+                        # 当前代币余额不足，全部扣除
+                        remaining_amount -= coin.balance
+                        coin.balance = 0
+            # 过滤掉device_balance_list中余额为0的代币记录
+            device_balance_list = [item for item in device_balance_list if item.balance > 0]
+
+            # 更新后的代币列表
+            balance = sum([item.balance for item in device_balance_list])
+            self.refresh_balance(device_serial, balance, device_balance_list)
+
+            # 记录使用情况
+            record = BalanceRecord(
+                device_serial=device_serial,
+                novel_name=novel_name,
+                chapter_name=chapter_name,
+                coins_used=amount,
+                timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            )
+            self.balance_manager.records.append(record)
+            self.balance_manager.save_records()
+
+            self.logger.info(f"设备 {device_serial} 成功消耗 {amount} 个代币购买小说 {novel_name} 章节 {chapter_name}")
+            return True
+        except Exception as e:
+            self.logger.error(f"设备 {device_serial} 消耗代币失败: {e}")
+            return False
 
 
 # 全局maa管理器实例

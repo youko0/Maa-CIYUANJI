@@ -19,7 +19,7 @@ from core.config_manager import get_config_manager
 def init_directories():
     """初始化项目目录结构"""
     # 创建必要的目录
-    dirs = ['logs', 'configs', 'data', 'novels']
+    dirs = ['logs', 'configs']
     for dir_name in dirs:
         Path(dir_name).mkdir(exist_ok=True)
 
@@ -40,7 +40,7 @@ def main():
     # 初始化日志记录器
     logger = get_logger()
     
-    # 加载manager（这些操作会产生日志）
+    # 加载manager
     load_managers()
 
     # 创建主窗口

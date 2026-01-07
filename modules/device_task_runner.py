@@ -72,7 +72,10 @@ class DeviceTaskRunner(QObject):
             # 执行游戏逻辑循环
             try:
                 if not self.stop_event.is_set():
-                    if self.task_name == "signIn":
+                    if self.task_name == "launchApp":
+                        self.logger.info(f"[系统]开始执行启动App任务")
+                        self.user_logic.launch_app()
+                    elif self.task_name == "signIn":
                         self.logger.info(f"[系统]开始执行签到任务")
                         self.page_manager.check_is_home_page()
                         self.user_logic.sign_in()
