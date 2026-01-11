@@ -125,7 +125,8 @@ class NovelLogic:
             return False
         time.sleep(0.6)
         # 开始滑动识别章节
-        chapter_name = MathUtils.pad_zero(chapter_list[0], 3)
+        # chapter_name = MathUtils.pad_zero(chapter_list[0], 3)
+        chapter_name = f'^(?!.*\d+年\d+月\d+日){chapter_list[0]}.*$'
 
         find_element = find_element_by_swipe(
             tasker=self.tasker,

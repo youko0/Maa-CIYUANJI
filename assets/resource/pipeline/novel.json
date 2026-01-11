@@ -78,8 +78,8 @@
   },
   "existAndClickChapter": {
     "recognition": "OCR",
-    "roi": [68, 514, 121, 765],
-    "expected": "^001",
+    "roi": [68, 514, 300, 765],
+    "expected": "^002",
     "action": "click",
     "timeout": 1200,
     "describe": "判断是否存在章节，存在则点击"

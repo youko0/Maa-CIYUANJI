@@ -87,10 +87,6 @@ class DeviceTaskRunner(QObject):
                         self.logger.info(f"[系统]开始执行初始化任务")
                         self.page_manager.check_is_home_page()
                         self.novel_logic.initialized()
-                    elif self.task_name == "initialized":
-                        self.logger.info(f"[系统]开始执行初始化任务")
-                        self.page_manager.check_is_home_page()
-                        self.novel_logic.initialized()
                     elif self.task_name == "ocrNovel":
                         self.logger.info(f"[系统]开始执行小说识别任务")
                         self.page_manager.check_is_home_page()
