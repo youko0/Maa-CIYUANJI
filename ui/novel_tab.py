@@ -299,7 +299,8 @@ class NovelTab(QWidget):
             novel_chapter_obj = self._load_json_file(json_file)
             # 追加到导出文件
             with open(export_file_path, 'a', encoding='utf-8') as f:
-                f.write(novel_chapter_obj["content"] + "\n\n")
+                f.write(f'第{novel_chapter_obj["num"]}章 {novel_chapter_obj["name"]}\n')
+                f.write(novel_chapter_obj["content"] + "\n\n\n")
 
     def _load_json_file(self, file_path: Path) -> Dict[str, Any]:
         """加载JSON文件"""
