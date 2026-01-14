@@ -5,6 +5,8 @@
 余额标签页模块
 包含代币管理和使用记录显示功能
 """
+from datetime import timedelta
+
 from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QTableWidget, QTableWidgetItem,
@@ -52,7 +54,7 @@ class BalanceTab(QWidget):
         self.device_table = QTableWidget()
         self.device_table.setColumnCount(5)
         self.device_table.setHorizontalHeaderLabels([
-            "设备名称","设备地址", "余额","签到时间", "最早过期时间"
+            "设备名称", "设备地址", "余额", "签到时间", "最早过期时间"
         ])
 
         header = self.device_table.horizontalHeader()
@@ -77,7 +79,7 @@ class BalanceTab(QWidget):
         self.record_table = QTableWidget()
         self.record_table.setColumnCount(6)
         self.record_table.setHorizontalHeaderLabels([
-            "设备名称","设备地址", "小说名称", "章节名称", "使用数量", "时间"
+            "设备名称", "设备地址", "小说名称", "章节名称", "使用数量", "时间"
         ])
         self.record_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         record_layout.addWidget(self.record_table)
@@ -98,11 +100,11 @@ class BalanceTab(QWidget):
         try:
             # 刷新总余额
             device_info_list = self.maa_manager.get_all_device_info_list()
-            
+
             # 清空表格
             self.device_table.clearContents()
             self.device_table.setRowCount(len(device_info_list))
-            
+
             total_balance = 0
             for row, device_info in enumerate(device_info_list):
                 total_balance += device_info.balance
@@ -115,7 +117,8 @@ class BalanceTab(QWidget):
                 # 获取device_balance_list中，expire_time最小值对象
                 if device_balance_list:  # 确保列表不为空
                     balance_info = min(device_balance_list, key=lambda x: x.expire_time)
-                    self.device_table.setItem(row, 4, QTableWidgetItem(TimeUtils.format(balance_info.expire_time, "%m-%d") + " 凌晨将过期 " + str(balance_info.balance) + "个代币"))
+                    self.device_table.setItem(row, 4, QTableWidgetItem(
+                        TimeUtils.format(balance_info.expire_time - timedelta(seconds=1), "%m-%d") + " 将过期 " + str(balance_info.balance) + "个代币"))
                 else:
                     self.device_table.setItem(row, 4, QTableWidgetItem("无代币信息"))
 
