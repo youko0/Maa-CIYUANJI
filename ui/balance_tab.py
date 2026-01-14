@@ -61,7 +61,8 @@ class BalanceTab(QWidget):
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
         header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
 
         # 启用表格排序功能
         self.device_table.setSortingEnabled(True)
@@ -70,7 +71,7 @@ class BalanceTab(QWidget):
         device_coin_layout.addWidget(self.device_table)
 
         overview_layout.addWidget(total_coin_group, 1)
-        overview_layout.addWidget(device_coin_group, 6)
+        overview_layout.addWidget(device_coin_group, 8)
 
         # 代币使用记录区域
         record_group = QGroupBox("代币使用记录")
