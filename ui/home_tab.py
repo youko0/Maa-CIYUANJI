@@ -7,6 +7,9 @@
 """
 
 import logging
+import time
+from time import sleep
+
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QTableWidget, QTableWidgetItem,
     QTextEdit, QPushButton, QHeaderView
@@ -253,6 +256,7 @@ class HomeTab(QWidget):
         device_serial_list = self.maa_manager.get_connected_device_serial_list()
         for device_serial in device_serial_list:
             self.start_device_task(device_serial, "launchApp")
+            time.sleep(0.4)
 
     def one_click_check_in(self):
         """一键签到"""
@@ -264,6 +268,7 @@ class HomeTab(QWidget):
             if device_info.last_sign_in_time is None or TimeUtils.is_today(device_info.last_sign_in_time) is False:
                 # 执行签到逻辑
                 self.start_device_task(device_info.device_serial, "signIn")
+                time.sleep(0.4)
             else:
                 self.logger.info(f"设备 {device_serial} 今日已签到")
 
@@ -272,6 +277,7 @@ class HomeTab(QWidget):
         device_serial_list = self.maa_manager.get_connected_device_serial_list()
         for device_serial in device_serial_list:
             self.start_device_task(device_serial, "refreshBalance")
+            time.sleep(0.4)
 
     def one_click_initialized(self):
         """一键初始化"""
@@ -283,6 +289,7 @@ class HomeTab(QWidget):
                 self.logger.info(f"设备 {device_serial} 已经初始化过")
                 continue
             self.start_device_task(device_serial, "initialized")
+            time.sleep(0.4)
 
     def clear_logs(self):
         """清空日志"""

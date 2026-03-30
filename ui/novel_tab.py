@@ -6,6 +6,7 @@
 包含小说管理和识别进度显示功能
 """
 import json
+import time
 from pathlib import Path
 from typing import Dict, List, Any
 
@@ -233,6 +234,7 @@ class NovelTab(QWidget):
                             # self._update_task_button_state()
                             # self.task_status_changed.emit(self.device_serial, True)
                             self.logger.info("任务启动成功")
+                            time.sleep(0.4)
                         else:
                             self.logger.info("任务启动失败")
                     else:
